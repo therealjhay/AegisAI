@@ -1,0 +1,57 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Alert {
+  /// Unique identifier for each incoming alert.
+  id             BigInt   @id @default(autoincrement())
+  /// Raw untrusted payload text captured from upstream source.
+  rawText        String   @map("raw_text") @db.Text
+  /// Ingestion source label (e.g., SMS, social, partner feed).
+  source         String   @db.VarChar(128)
+  /// Geospatial point in EPSG:4326 for map operations.
+  coordinates    Unsupported("geometry(Point, 4326)")
+  /// Urgency score constrained to 1..5 by SQL init script.
+  urgencyScore   Int      @map("urgency_score") @db.SmallInt
+  /// Credibility score from source verification logic (0.0..1.0).
+  sourceCredibilityScore Float @map("source_credibility_score") @db.Real
+  /// Whether human or trusted workflow verified this alert.
+  verifiedStatus Boolean  @default(false) @map("verified_status")
+  /// UTC ingest time of the alert record.
+  timestamp      DateTime @default(now()) @db.Timestamptz(6)
+
+  @@map("Alerts")
+}
+
+model NGOUser {
+  /// Unique NGO user record identifier.
+  id               BigInt @id @default(autoincrement())
+  /// NGO or organization display name.
+  organizationName String @map("organization_name") @db.VarChar(255)
+  /// Sector specialization for matching and routing.
+  sector           String @db.VarChar(100)
+  /// Human-readable active operating region.
+  activeRegion     String @map("active_region") @db.Text
+
+  @@map("NGO_Users")
+}
+
+model QuarantineAlert {
+  /// Unique quarantine record identifier.
+  id BigInt @id @default(autoincrement())
+  /// Original untrusted payload preserved for forensic audit.
+  rawPayload Json @map("raw_payload")
+  /// Reason the alert was quarantined.
+  reason String @db.VarChar(255)
+  /// Structured validation or verification errors.
+  details Json?
+  /// UTC time when the payload was quarantined.
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@map("Quarantine_Alerts")
+}
