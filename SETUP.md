@@ -123,3 +123,31 @@ Run tests:
 cd brain_service
 pytest -q
 ```
+
+## 9. Phase 4 command center (Next.js 14 + Mapbox)
+
+Install frontend dependencies:
+
+```bash
+npm --prefix frontend install
+```
+
+Create `frontend/.env.local`:
+
+```bash
+DATABASE_URL="postgresql://aegis:aegis_dev_password@localhost:5432/aegis?schema=public"
+NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN="your_mapbox_public_token"
+```
+
+Run the command center:
+
+```bash
+npm run frontend:dev
+```
+
+Useful frontend commands:
+
+```bash
+npm run frontend:lint
+npm run frontend:build
+```

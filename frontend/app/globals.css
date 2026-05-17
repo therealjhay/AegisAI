@@ -1,0 +1,55 @@
+@import "mapbox-gl/dist/mapbox-gl.css";
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: 220 25% 10%;
+  --foreground: 0 0% 100%;
+  --card: 222 22% 14%;
+  --card-foreground: 0 0% 100%;
+  --primary: 23 96% 55%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 212 28% 20%;
+  --secondary-foreground: 0 0% 100%;
+  --muted: 216 22% 18%;
+  --muted-foreground: 210 16% 88%;
+  --accent: 177 77% 35%;
+  --accent-foreground: 0 0% 100%;
+  --border: 215 20% 30%;
+  --input: 215 20% 30%;
+  --ring: 36 100% 62%;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: 220 25% 10%;
+    --foreground: 0 0% 100%;
+    --card: 222 22% 14%;
+    --card-foreground: 0 0% 100%;
+    --primary: 23 96% 55%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 212 28% 20%;
+    --secondary-foreground: 0 0% 100%;
+    --muted: 216 22% 18%;
+    --muted-foreground: 210 16% 88%;
+    --accent: 177 77% 35%;
+    --accent-foreground: 0 0% 100%;
+    --border: 215 20% 30%;
+    --input: 215 20% 30%;
+    --ring: 36 100% 62%;
+  }
+}
+
+body {
+  color: hsl(var(--foreground));
+  background: hsl(var(--background));
+  font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+}

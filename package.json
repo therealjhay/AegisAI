@@ -4,6 +4,9 @@
   "private": true,
   "scripts": {
     "build": "tsc -p tsconfig.json",
+    "frontend:dev": "npm --prefix frontend run dev",
+    "frontend:build": "npm --prefix frontend run build",
+    "frontend:lint": "npm --prefix frontend run lint",
     "ingest:mock": "tsx src/ingestion/index.ts",
     "prisma:generate": "prisma generate",
     "prisma:validate": "prisma validate",
