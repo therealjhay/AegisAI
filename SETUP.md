@@ -151,3 +151,18 @@ Useful frontend commands:
 npm run frontend:lint
 npm run frontend:build
 ```
+
+## 10. Phase 5 documentation and API reference
+
+Handover docs at repository root:
+
+- `SYSTEM_MANUAL.md`
+- `API_REFERENCE.openapi.yaml`
+- `SECURITY.md`
+- `DISASTER_RECOVERY.md`
+- `NGO_WORKFLOW_SUMMARY.md`
+
+Brain service native OpenAPI docs are also available when FastAPI is running:
+
+- Swagger UI: `http://localhost:8001/docs`
+- OpenAPI JSON: `http://localhost:8001/openapi.json`

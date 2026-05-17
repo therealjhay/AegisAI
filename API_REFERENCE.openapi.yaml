@@ -1,0 +1,229 @@
+openapi: 3.0.3
+info:
+  title: AegisAI API Technical Reference
+  version: 1.0.0
+  description: >
+    Unified API reference for AegisAI Brain Service (FastAPI) and Command Center data APIs (Next.js route handlers).
+servers:
+  - url: http://localhost:8001
+    description: Brain Service (FastAPI)
+  - url: http://localhost:3000
+    description: Command Center (Next.js)
+tags:
+  - name: Brain
+  - name: Command Center
+
+paths:
+  /health:
+    get:
+      tags: [Brain]
+      summary: Brain service health check
+      operationId: brainHealth
+      responses:
+        "200":
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: ok
+                required: [status]
+
+  /triage:
+    post:
+      tags: [Brain]
+      summary: Triage raw disaster text
+      operationId: triageAlertText
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TriageRequest"
+            examples:
+              flood_case:
+                value:
+                  raw_text: "Flash flood water is rising rapidly near Old Bridge; families are trapped."
+      responses:
+        "200":
+          description: Structured triage result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TriageResponse"
+        "422":
+          description: Validation error
+
+  /api/alerts/heatmap:
+    get:
+      tags: [Command Center]
+      summary: Get verified alerts for heatmap display
+      operationId: getHeatmapAlerts
+      parameters:
+        - in: query
+          name: sector
+          required: false
+          schema:
+            type: string
+          description: Optional sector filter (for example Medical, Shelter, Logistics)
+      responses:
+        "200":
+          description: Heatmap-ready points
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  generatedAt:
+                    type: string
+                    format: date-time
+                  points:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/HeatmapPoint"
+                required: [generatedAt, points]
+        "500":
+          description: Unable to load heatmap alerts
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/alerts/priority:
+    get:
+      tags: [Command Center]
+      summary: Get top 5 most urgent verified alerts
+      operationId: getPriorityAlerts
+      parameters:
+        - in: query
+          name: sector
+          required: false
+          schema:
+            type: string
+          description: Optional sector filter (for example Medical, Shelter, Logistics)
+      responses:
+        "200":
+          description: Priority alert list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  generatedAt:
+                    type: string
+                    format: date-time
+                  alerts:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/PriorityAlert"
+                required: [generatedAt, alerts]
+        "500":
+          description: Unable to load priority alerts
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/sectors:
+    get:
+      tags: [Command Center]
+      summary: Get available sector filter values
+      operationId: getSectors
+      responses:
+        "200":
+          description: Sector list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  sectors:
+                    type: array
+                    items:
+                      type: string
+                required: [sectors]
+        "500":
+          description: Unable to load sectors
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+components:
+  schemas:
+    TriageRequest:
+      type: object
+      properties:
+        raw_text:
+          type: string
+          minLength: 1
+      required: [raw_text]
+    TriageResponse:
+      type: object
+      properties:
+        disaster_type:
+          type: string
+          example: Flood
+        urgency_score:
+          type: integer
+          minimum: 1
+          maximum: 5
+          example: 5
+        location_mentions:
+          type: array
+          items:
+            type: string
+          example: ["Old Bridge", "Mercy Hospital"]
+        classification_source:
+          type: string
+          example: llm
+      required: [disaster_type, urgency_score, location_mentions, classification_source]
+    HeatmapPoint:
+      type: object
+      properties:
+        id:
+          type: string
+        lat:
+          type: number
+          format: double
+        lon:
+          type: number
+          format: double
+        urgencyScore:
+          type: integer
+          minimum: 1
+          maximum: 5
+        sector:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+      required: [id, lat, lon, urgencyScore, sector, timestamp]
+    PriorityAlert:
+      type: object
+      properties:
+        id:
+          type: string
+        rawText:
+          type: string
+        source:
+          type: string
+        urgencyScore:
+          type: integer
+          minimum: 1
+          maximum: 5
+        sector:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+      required: [id, rawText, source, urgencyScore, sector, timestamp]
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+      required: [error]

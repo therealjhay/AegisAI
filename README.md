@@ -14,3 +14,11 @@ See:
 - `src/ingestion/README.md` for ingestion verification workflow.
 - `brain_service/` for the AI triage microservice and pytest scenario tests.
 - `frontend/` for the command center UI and mapping experience.
+
+## Phase 5 handover documentation
+
+- `SYSTEM_MANUAL.md` — comprehensive architecture and operations manual.
+- `API_REFERENCE.openapi.yaml` — Swagger/OpenAPI technical reference.
+- `SECURITY.md` — security controls and anti-honey-pot misuse safeguards.
+- `DISASTER_RECOVERY.md` — outage recovery and redeployment runbook.
+- `NGO_WORKFLOW_SUMMARY.md` — NGO operator flow from first alert to field deployment.
