@@ -99,3 +99,27 @@ Run mock ingestion:
 ```bash
 npm run ingest:mock
 ```
+
+## 8. Phase 3 AI triage microservice (FastAPI)
+
+Install Python dependencies:
+
+```bash
+python3 -m venv brain_service/.venv
+. brain_service/.venv/bin/activate
+pip install -r brain_service/requirements.txt
+```
+
+Run the service:
+
+```bash
+cd brain_service
+uvicorn app.main:app --reload --port 8001
+```
+
+Run tests:
+
+```bash
+cd brain_service
+pytest -q
+```
