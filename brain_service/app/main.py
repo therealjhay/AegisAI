@@ -5,12 +5,14 @@ from .triage import TriageService
 
 
 class TriageRequest(BaseModel):
-    raw_text: str = Field(min_length=1, description="Unstructured disaster report text")
+    raw_text: str = Field(min_length=1, description="Unstructured crisis report text (Telegram, Logs, SMS)")
 
 
 class TriageResponse(BaseModel):
-    disaster_type: str
+    incident_type: str = Field(description="Natural_Disaster or Terrorism_Attack")
+    disaster_type: str = Field(description="Specific sub-category (e.g. Explosion, Flood)")
     urgency_score: int = Field(ge=1, le=5)
+    financial_target_usd: float = Field(ge=0, description="Estimated emergency funding needed")
     location_mentions: list[str]
     classification_source: str
 

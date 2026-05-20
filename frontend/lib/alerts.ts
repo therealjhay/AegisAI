@@ -17,6 +17,8 @@ export type HeatmapPoint = {
   lat: number;
   lon: number;
   urgencyScore: number;
+  incidentType: string;
+  fundingDeficit: number;
   sector: string;
   timestamp: string;
 };
@@ -25,7 +27,11 @@ export type PriorityAlert = {
   id: string;
   rawText: string;
   source: string;
+  incidentType: string;
   urgencyScore: number;
+  financialTargetUSD: number;
+  financialRaisedUSD: number;
+  fundingDeficit: number;
   sector: string;
   timestamp: string;
 };
@@ -38,6 +44,8 @@ export async function getHeatmapPoints(sector?: string): Promise<HeatmapPoint[]>
       ST_Y(a.coordinates) AS lat,
       ST_X(a.coordinates) AS lon,
       a.urgency_score AS "urgencyScore",
+      a.incident_type AS "incidentType",
+      (a.financial_target_usd - a.financial_raised_usd) AS "fundingDeficit",
       ${sectorCaseSql} AS sector,
       a.timestamp::text AS timestamp
     FROM "Alerts" a
@@ -59,14 +67,18 @@ export async function getPriorityAlerts(sector?: string): Promise<PriorityAlert[
       a.id::text AS id,
       a.raw_text AS "rawText",
       a.source,
+      a.incident_type AS "incidentType",
       a.urgency_score AS "urgencyScore",
+      a.financial_target_usd AS "financialTargetUSD",
+      a.financial_raised_usd AS "financialRaisedUSD",
+      (a.financial_target_usd - a.financial_raised_usd) AS "fundingDeficit",
       ${sectorCaseSql} AS sector,
       a.timestamp::text AS timestamp
     FROM "Alerts" a
     WHERE a.verified_status = true
       ${hasSector ? `AND ${sectorCaseSql} = $1` : ""}
-    ORDER BY a.urgency_score DESC, a.timestamp DESC
-    LIMIT 5;
+    ORDER BY (a.urgency_score * 1000000) + (a.financial_target_usd - a.financial_raised_usd) DESC, a.timestamp DESC
+    LIMIT 10;
   `;
   const result = hasSector
     ? await pool.query<PriorityAlert>(sql, [sector])
