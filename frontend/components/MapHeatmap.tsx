@@ -2,20 +2,26 @@
 
 import { useEffect, useMemo, useRef } from "react";
 import type { FeatureCollection, Point } from "geojson";
-import type { Map as MapboxMap } from "mapbox-gl";
+import type { Map as MapboxMap, MapMouseEvent } from "mapbox-gl";
 
-type HeatmapPoint = {
-  id: string;
-  lat: number;
-  lon: number;
-  urgencyScore: number;
-};
+import type { HeatmapPoint, PriorityAlert } from "@/components/CommandCenter";
 
 type MapHeatmapProps = {
   points: HeatmapPoint[];
+  alerts: PriorityAlert[];
+  lowBandwidth: boolean;
+  selectedAlertId: string | null;
+  onSelectAlert: (alertId: string) => void;
 };
 
 const MAP_SOURCE_ID = "alerts";
+
+function incidentTypeFor(point: HeatmapPoint): string {
+  const text = `${point.incidentType ?? ""} ${point.sector ?? ""}`.toLowerCase();
+  if (/(terror|attack|armed|explosion|bomb|gun|militant|kidnap)/.test(text)) return "terrorism";
+  if (/(flood|earthquake|fire|storm|landslide|disaster|drought)/.test(text)) return "disaster";
+  return "other";
+}
 
 function toGeoJson(points: HeatmapPoint[]): FeatureCollection<Point> {
   return {
@@ -25,6 +31,7 @@ function toGeoJson(points: HeatmapPoint[]): FeatureCollection<Point> {
       properties: {
         id: point.id,
         urgencyScore: point.urgencyScore,
+        incidentType: incidentTypeFor(point),
       },
       geometry: {
         type: "Point",
@@ -34,16 +41,30 @@ function toGeoJson(points: HeatmapPoint[]): FeatureCollection<Point> {
   };
 }
 
-export function MapHeatmap({ points }: MapHeatmapProps) {
+function fallbackRows(alerts: PriorityAlert[]) {
+  return alerts.slice(0, 8).map((alert) => (
+    <button
+      key={alert.id}
+      type="button"
+      className="alert-card flex min-h-16 w-full items-center justify-between gap-3 rounded-lg border border-border bg-card p-3 text-left hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+    >
+      <span>
+        <span className="block text-sm font-semibold text-foreground">{alert.incidentType ?? alert.sector}</span>
+        <span className="block text-xs text-muted-foreground">{alert.source}</span>
+      </span>
+      <span className="rounded-md bg-red-500/15 px-2 py-1 text-xs font-bold text-red-100">U{alert.urgencyScore}</span>
+    </button>
+  ));
+}
+
+export function MapHeatmap({ points, alerts, lowBandwidth, selectedAlertId, onSelectAlert }: MapHeatmapProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<MapboxMap | null>(null);
   const hasToken = Boolean(process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN);
   const geoJson = useMemo(() => toGeoJson(points), [points]);
 
   useEffect(() => {
-    if (!hasToken || !containerRef.current || mapRef.current) {
-      return;
-    }
+    if (!hasToken || lowBandwidth || !containerRef.current || mapRef.current) return;
 
     let mounted = true;
 
@@ -54,8 +75,8 @@ export function MapHeatmap({ points }: MapHeatmapProps) {
       const map = new mapboxgl.Map({
         container: containerRef.current!,
         style: "mapbox://styles/mapbox/dark-v11",
-        center: [30.0, 0.0],
-        zoom: 2.2,
+        center: [13.18, 11.84],
+        zoom: 5.4,
         attributionControl: true,
       });
 
@@ -70,58 +91,65 @@ export function MapHeatmap({ points }: MapHeatmapProps) {
         map.addSource(MAP_SOURCE_ID, {
           type: "geojson",
           data: geoJson,
-        });
-
-        map.addLayer({
-          id: "alerts-heat",
-          type: "heatmap",
-          source: MAP_SOURCE_ID,
-          paint: {
-            "heatmap-weight": [
-              "interpolate",
-              ["linear"],
-              ["get", "urgencyScore"],
-              1,
-              0.2,
-              5,
-              1,
-            ],
-            "heatmap-intensity": ["interpolate", ["linear"], ["zoom"], 0, 0.6, 10, 1.5],
-            "heatmap-color": [
-              "interpolate",
-              ["linear"],
-              ["heatmap-density"],
-              0,
-              "rgba(255, 255, 255, 0)",
-              0.2,
-              "rgb(94, 234, 212)",
-              0.4,
-              "rgb(45, 212, 191)",
-              0.6,
-              "rgb(251, 191, 36)",
-              0.8,
-              "rgb(249, 115, 22)",
-              1,
-              "rgb(239, 68, 68)",
-            ],
-            "heatmap-radius": ["interpolate", ["linear"], ["zoom"], 0, 8, 10, 24],
-            "heatmap-opacity": 0.92,
+          cluster: true,
+          clusterRadius: 52,
+          clusterMaxZoom: 10,
+          clusterProperties: {
+            maxUrgency: ["max", ["get", "urgencyScore"]],
           },
         });
 
         map.addLayer({
-          id: "alerts-point",
+          id: "alert-clusters",
           type: "circle",
           source: MAP_SOURCE_ID,
-          minzoom: 7,
+          filter: ["has", "point_count"],
           paint: {
-            "circle-radius": ["interpolate", ["linear"], ["get", "urgencyScore"], 1, 4, 5, 9],
-            "circle-color": "#f97316",
-            "circle-stroke-color": "#ffffff",
-            "circle-stroke-width": 1.2,
-            "circle-opacity": 0.95,
+            "circle-color": ["step", ["get", "maxUrgency"], "#10B981", 4, "#F59E0B", 5, "#EF4444"],
+            "circle-radius": ["step", ["get", "point_count"], 22, 10, 30, 30, 40],
+            "circle-opacity": 0.2,
+            "circle-stroke-width": ["step", ["get", "maxUrgency"], 2, 5, 4],
+            "circle-stroke-color": ["step", ["get", "maxUrgency"], "#10B981", 4, "#F59E0B", 5, "#EF4444"],
           },
         });
+
+        map.addLayer({
+          id: "cluster-count",
+          type: "symbol",
+          source: MAP_SOURCE_ID,
+          filter: ["has", "point_count"],
+          layout: {
+            "text-field": ["get", "point_count_abbreviated"],
+            "text-size": 13,
+            "text-font": ["DIN Offc Pro Medium", "Arial Unicode MS Bold"],
+          },
+          paint: { "text-color": "#F3F4F6" },
+        });
+
+        map.addLayer({
+          id: "alert-points",
+          type: "symbol",
+          source: MAP_SOURCE_ID,
+          filter: ["!", ["has", "point_count"]],
+          layout: {
+            "text-field": ["case", ["==", ["get", "incidentType"], "terrorism"], "◎", ["==", ["get", "incidentType"], "disaster"], "△", "●"],
+            "text-size": ["interpolate", ["linear"], ["get", "urgencyScore"], 1, 18, 5, 28],
+            "text-allow-overlap": true,
+          },
+          paint: {
+            "text-color": ["case", [">=", ["get", "urgencyScore"], 5], "#EF4444", ["==", ["get", "incidentType"], "disaster"], "#F59E0B", "#10B981"],
+            "text-halo-color": "#0A0A0B",
+            "text-halo-width": 2,
+          },
+        });
+
+        map.on("click", "alert-points", (event: MapMouseEvent) => {
+          const id = event.features?.[0]?.properties?.id;
+          if (typeof id === "string") onSelectAlert(id);
+        });
+
+        map.on("mouseenter", "alert-points", () => { map.getCanvas().style.cursor = "pointer"; });
+        map.on("mouseleave", "alert-points", () => { map.getCanvas().style.cursor = ""; });
       });
     })();
 
@@ -130,39 +158,45 @@ export function MapHeatmap({ points }: MapHeatmapProps) {
       mapRef.current?.remove();
       mapRef.current = null;
     };
-  }, [hasToken, geoJson]);
+  }, [geoJson, hasToken, lowBandwidth, onSelectAlert]);
 
   useEffect(() => {
-    const map = mapRef.current;
-    if (!map) {
+    if (lowBandwidth && mapRef.current) {
+      mapRef.current.remove();
+      mapRef.current = null;
       return;
     }
+    const source = mapRef.current?.getSource(MAP_SOURCE_ID);
+    if (source && "setData" in source) source.setData(geoJson);
+  }, [geoJson, lowBandwidth]);
 
-    const source = map.getSource(MAP_SOURCE_ID);
-    if (source && "setData" in source) {
-      source.setData(geoJson);
-    }
-  }, [geoJson]);
-
-  if (!hasToken) {
+  if (!hasToken || lowBandwidth) {
     return (
-      <div className="flex min-h-[420px] items-center justify-center rounded-lg border border-border bg-card p-6 text-center">
-        <p className="max-w-md text-sm text-foreground">
-          Mapbox token is missing. Set <code>NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN</code> in{" "}
-          <code>frontend/.env.local</code> to render the live heatmap.
-        </p>
+      <div className="radar-stage h-full min-h-[calc(100vh-65px)] bg-background p-4 pt-20 lg:p-6 lg:pt-20">
+        <div className="radar-grid" aria-hidden="true" />
+        <div className="radar-sweep" aria-hidden="true" />
+        <div className="relative mx-auto max-w-3xl rounded-lg border border-border bg-background/90 p-4">
+          <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">
+            {lowBandwidth ? "List-Only Mode" : "Mapbox Token Missing"}
+          </p>
+          <h2 className="mt-2 text-xl font-semibold text-foreground">Operational feed remains available</h2>
+          <p className="mt-2 text-sm text-muted-foreground">
+            {lowBandwidth
+              ? "Map rendering is disabled to conserve data. Priority sorting, verification, and funding routes remain active."
+              : "Set NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN in frontend/.env.local to enable the live Mapbox canvas."}
+          </p>
+          <div className="mt-4 grid gap-2">{fallbackRows(alerts)}</div>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="overflow-hidden rounded-lg border border-border bg-card">
-      <div
-        ref={containerRef}
-        className="min-h-[420px] w-full"
-        aria-label="Live disaster heatmap"
-        role="img"
-      />
+    <div className="map-stage h-full min-h-[calc(100vh-65px)] w-full">
+      <div className="map-vignette" aria-hidden="true" />
+      <div className="scanline" aria-hidden="true" />
+      <div ref={containerRef} className="h-full min-h-[calc(100vh-65px)] w-full" aria-label="Live tactical alert map" role="img" />
+      {selectedAlertId && <span className="sr-only" aria-live="polite">Alert {selectedAlertId} selected.</span>}
     </div>
   );
 }
