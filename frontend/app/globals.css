@@ -32,7 +32,7 @@ html {
 
 body {
   color: hsl(var(--foreground));
-  background: #0a0a0b;
+  background: hsl(var(--background));
   font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
 }
 
@@ -50,6 +50,7 @@ select {
 @media (prefers-reduced-motion: no-preference) {
   .tactical-pulse {
     animation: tactical-pulse 1.4s ease-in-out infinite;
+    will-change: box-shadow, opacity;
   }
 }
 
@@ -93,7 +94,7 @@ select {
 
 .brand-lockup {
   position: relative;
-  text-shadow: 0 0 20px rgb(239 68 68 / 0.25);
+  text-shadow: 0 0 20px hsl(var(--primary) / 0.25);
 }
 
 .brand-lockup::after {
@@ -103,9 +104,10 @@ select {
   right: 42%;
   bottom: -5px;
   height: 1px;
-  background: linear-gradient(90deg, #ef4444, transparent);
+  background: linear-gradient(90deg, hsl(var(--primary)), transparent);
   transform-origin: left;
   animation: line-charge 900ms var(--ease-out-expo) 260ms both;
+  will-change: transform;
 }
 
 .tactical-button,
@@ -134,7 +136,6 @@ select {
 }
 
 .hud-metric {
-  backdrop-filter: blur(14px);
   animation: fade-slide-up 520ms var(--ease-out-quint) both;
 }
 
@@ -171,23 +172,6 @@ select {
   overflow: hidden;
 }
 
-.alert-card::before {
-  content: "";
-  position: absolute;
-  inset: 0 auto 0 0;
-  width: 2px;
-  background: linear-gradient(180deg, transparent, #ef4444, transparent);
-  opacity: 0;
-  transform: translateY(-100%);
-  transition: opacity 180ms var(--ease-out-quart);
-}
-
-.alert-card:hover::before,
-.alert-card:focus-visible::before {
-  opacity: 1;
-  animation: card-scan 900ms var(--ease-out-quart) infinite;
-}
-
 .funding-fill {
   position: relative;
   min-width: 0.35rem;
@@ -202,6 +186,7 @@ select {
   background: linear-gradient(90deg, transparent, rgb(255 255 255 / 0.42), transparent);
   transform: translateX(-120%);
   animation: funding-glint 2.6s var(--ease-out-quart) infinite;
+  will-change: transform;
 }
 
 .detail-panel {
@@ -245,8 +230,8 @@ select {
   right: 0;
   top: 0;
   height: 2px;
-  background: #10b981;
-  box-shadow: 0 0 14px #10b981;
+  background: hsl(var(--accent));
+  box-shadow: 0 0 14px hsl(var(--accent));
   animation: qr-read 1.8s var(--ease-out-quart) infinite;
 }
 
@@ -265,39 +250,7 @@ select {
   inset: 0;
   z-index: 1;
   pointer-events: none;
-  background: radial-gradient(circle at center, transparent 40%, rgb(10 10 11 / 0.7));
-}
-
-.scanline {
-  position: absolute;
-  inset: 0;
-  z-index: 2;
-  pointer-events: none;
-  background: linear-gradient(180deg, transparent, rgb(16 185 129 / 0.08), transparent);
-  transform: translateY(-100%);
-  animation: map-scan 4.8s linear infinite;
-}
-
-.radar-grid {
-  position: absolute;
-  inset: 0;
-  background-image: linear-gradient(rgb(16 185 129 / 0.08) 1px, transparent 1px), linear-gradient(90deg, rgb(16 185 129 / 0.08) 1px, transparent 1px);
-  background-size: 42px 42px;
-  mask-image: radial-gradient(circle at center, black, transparent 72%);
-}
-
-.radar-sweep {
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  width: min(74vw, 680px);
-  aspect-ratio: 1;
-  border-radius: 9999px;
-  border: 1px solid rgb(16 185 129 / 0.18);
-  background: conic-gradient(from 0deg, rgb(16 185 129 / 0.28), transparent 28%, transparent);
-  transform: translate(-50%, -50%);
-  animation: radar-spin 5s linear infinite;
-  opacity: 0.65;
+  background: radial-gradient(circle at center, transparent 40%, hsl(var(--background) / 0.7));
 }
 
 @keyframes boot-scan {
@@ -326,10 +279,6 @@ select {
 
 @keyframes feed-enter {
   to { opacity: 1; transform: translateY(0); }
-}
-
-@keyframes card-scan {
-  to { transform: translateY(100%); }
 }
 
 @keyframes fill-grow {
@@ -370,15 +319,6 @@ select {
 @keyframes banner-rise {
   from { transform: translateY(100%); }
   to { transform: translateY(0); }
-}
-
-@keyframes map-scan {
-  0% { transform: translateY(-100%); }
-  100% { transform: translateY(100%); }
-}
-
-@keyframes radar-spin {
-  to { transform: translate(-50%, -50%) rotate(360deg); }
 }
 
 @media (prefers-reduced-motion: reduce) {
