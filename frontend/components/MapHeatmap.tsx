@@ -5,6 +5,7 @@ import type { FeatureCollection, Point } from "geojson";
 import type { Map as MapboxMap, MapMouseEvent } from "mapbox-gl";
 
 import type { HeatmapPoint, PriorityAlert } from "@/components/CommandCenter";
+import { MAP_COLORS } from "@/lib/theme";
 
 type MapHeatmapProps = {
   points: HeatmapPoint[];
@@ -105,11 +106,11 @@ export function MapHeatmap({ points, alerts, lowBandwidth, selectedAlertId, onSe
           source: MAP_SOURCE_ID,
           filter: ["has", "point_count"],
           paint: {
-            "circle-color": ["step", ["get", "maxUrgency"], "#10B981", 4, "#F59E0B", 5, "#EF4444"],
+            "circle-color": ["step", ["get", "maxUrgency"], MAP_COLORS.urgencySafe, 4, MAP_COLORS.urgencyWarning, 5, MAP_COLORS.urgencyCritical],
             "circle-radius": ["step", ["get", "point_count"], 22, 10, 30, 30, 40],
             "circle-opacity": 0.2,
             "circle-stroke-width": ["step", ["get", "maxUrgency"], 2, 5, 4],
-            "circle-stroke-color": ["step", ["get", "maxUrgency"], "#10B981", 4, "#F59E0B", 5, "#EF4444"],
+            "circle-stroke-color": ["step", ["get", "maxUrgency"], MAP_COLORS.urgencySafe, 4, MAP_COLORS.urgencyWarning, 5, MAP_COLORS.urgencyCritical],
           },
         });
 
@@ -123,7 +124,7 @@ export function MapHeatmap({ points, alerts, lowBandwidth, selectedAlertId, onSe
             "text-size": 13,
             "text-font": ["DIN Offc Pro Medium", "Arial Unicode MS Bold"],
           },
-          paint: { "text-color": "#F3F4F6" },
+          paint: { "text-color": MAP_COLORS.textLight },
         });
 
         map.addLayer({
@@ -137,8 +138,8 @@ export function MapHeatmap({ points, alerts, lowBandwidth, selectedAlertId, onSe
             "text-allow-overlap": true,
           },
           paint: {
-            "text-color": ["case", [">=", ["get", "urgencyScore"], 5], "#EF4444", ["==", ["get", "incidentType"], "disaster"], "#F59E0B", "#10B981"],
-            "text-halo-color": "#0A0A0B",
+            "text-color": ["case", [">=", ["get", "urgencyScore"], 5], MAP_COLORS.urgencyCritical, ["==", ["get", "incidentType"], "disaster"], MAP_COLORS.urgencyWarning, MAP_COLORS.urgencySafe],
+            "text-halo-color": MAP_COLORS.backgroundDark,
             "text-halo-width": 2,
           },
         });
@@ -150,6 +151,25 @@ export function MapHeatmap({ points, alerts, lowBandwidth, selectedAlertId, onSe
 
         map.on("mouseenter", "alert-points", () => { map.getCanvas().style.cursor = "pointer"; });
         map.on("mouseleave", "alert-points", () => { map.getCanvas().style.cursor = ""; });
+
+        map.getCanvas().addEventListener("keydown", (event: KeyboardEvent) => {
+          if (event.key !== "Enter" && event.key !== " ") return;
+          const center = map.getCenter();
+          const features = map.queryRenderedFeatures(undefined, {
+            layers: ["alert-points"],
+          });
+          if (features.length === 0) return;
+          const nearest = features.reduce((closest, feature) => {
+            const [lon, lat] = (feature.geometry as { coordinates: number[] }).coordinates;
+            const dist = Math.hypot(lon - center.lng, lat - center.lat);
+            return dist < closest.dist ? { feature, dist } : closest;
+          }, { feature: features[0], dist: Infinity });
+          const id = nearest.feature.properties?.id;
+          if (typeof id === "string") {
+            event.preventDefault();
+            onSelectAlert(id);
+          }
+        });
       });
     })();
 
