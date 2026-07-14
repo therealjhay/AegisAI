@@ -237,9 +237,6 @@ export function CommandCenter() {
   useEffect(() => {
     setLoading(true);
     void fetchData();
-  }, [fetchData]);
-
-  useEffect(() => {
     const interval = setInterval(() => void fetchData(), 15_000);
     return () => clearInterval(interval);
   }, [fetchData]);
@@ -340,16 +337,18 @@ export function CommandCenter() {
           </nav>
 
           <div className="flex flex-wrap items-center justify-start gap-2 lg:justify-end">
-            <select
-              aria-label="Filter by NGO sector"
-              value={selectedSector}
-              onChange={(event) => updateSector(event.target.value)}
-              className="tactical-control h-11 rounded-md border border-input bg-card px-3 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-            >
-              {sectors.map((sector) => (
-                <option key={sector} value={sector}>{sector}</option>
-              ))}
-            </select>
+            <label className="flex items-center gap-2">
+              <span className="text-xs font-medium text-muted-foreground">Sector</span>
+              <select
+                value={selectedSector}
+                onChange={(event) => updateSector(event.target.value)}
+                className="tactical-control h-11 rounded-md border border-input bg-card px-3 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+              >
+                {sectors.map((sector) => (
+                  <option key={sector} value={sector}>{sector}</option>
+                ))}
+              </select>
+            </label>
             <button
               type="button"
               className="tactical-button h-11 rounded-md border border-border bg-card px-3 text-sm font-medium text-foreground transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
@@ -407,20 +406,13 @@ export function CommandCenter() {
             onSelectAlert={setSelectedAlertId}
           />
 
-          <div className="pointer-events-none absolute bottom-4 left-4 right-4 z-10 hidden grid-cols-3 gap-3 md:grid">
-            <div className="hud-metric rounded-lg border border-border bg-card/95 p-3">
-              <p className="text-xs text-muted-foreground">Active Alerts</p>
-              <p className="mt-1 text-2xl font-semibold tabular-nums">{mergedAlerts.length}</p>
-            </div>
-            <div className="hud-metric rounded-lg border border-red-500/40 bg-red-500/10 p-3">
-              <p className="text-xs text-red-200">Critical U5</p>
-              <p className="mt-1 text-2xl font-semibold tabular-nums text-red-100">{criticalCount}</p>
-            </div>
-            <div className="hud-metric rounded-lg border border-emerald-500/30 bg-emerald-500/10 p-3">
-              <p className="text-xs text-emerald-200">Open Deficit</p>
-              <p className="mt-1 text-2xl font-semibold tabular-nums text-emerald-100">
-                ${Math.round(totalDeficit / 1000)}k
-              </p>
+          <div className="pointer-events-none absolute bottom-4 left-4 right-4 z-10 hidden md:block">
+            <div className="inline-flex items-center gap-4 rounded-lg border border-border bg-card/95 px-4 py-2 text-sm">
+              <span className="tabular-nums font-semibold">{mergedAlerts.length} <span className="font-normal text-muted-foreground">alerts</span></span>
+              <span aria-hidden="true" className="text-border">|</span>
+              <span className="tabular-nums font-semibold text-red-300">{criticalCount} <span className="font-normal text-red-200/70">critical</span></span>
+              <span aria-hidden="true" className="text-border">|</span>
+              <span className="tabular-nums font-semibold text-emerald-300">${Math.round(totalDeficit / 1000)}k <span className="font-normal text-emerald-200/70">deficit</span></span>
             </div>
           </div>
         </div>
@@ -439,7 +431,7 @@ export function CommandCenter() {
               className="h-11 min-w-11 rounded-md border border-border text-xl text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
               aria-label="Close detail panel"
             >
-              x
+              ×
             </button>
           </div>
 
@@ -506,7 +498,7 @@ export function CommandCenter() {
                 className="h-11 min-w-11 rounded-md border border-border text-xl text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
                 aria-label="Close funding modal"
               >
-                x
+                ×
               </button>
             </div>
             <div className="qr-tile mx-auto mt-5 grid h-40 w-40 place-items-center rounded-md border border-foreground bg-white text-center text-xs font-bold text-black">
