@@ -103,9 +103,9 @@ export function PrioritySidebar({ alerts, loading, error, selectedAlertId, onRet
           <div className="space-y-3" aria-live="polite" aria-busy="true">
             {Array.from({ length: 6 }).map((_, idx) => (
               <div key={idx} className="rounded-lg border border-border bg-background p-3">
-                <div className="h-4 w-28 animate-pulse rounded bg-muted" />
-                <div className="mt-3 h-5 w-full animate-pulse rounded bg-muted" />
-                <div className="mt-4 h-2 w-full animate-pulse rounded bg-muted" />
+                <div className="h-4 w-28 animate-pulse rounded bg-border/50" />
+                <div className="mt-3 h-5 w-full animate-pulse rounded bg-border/50" />
+                <div className="mt-4 h-2 w-full animate-pulse rounded bg-border/50" />
               </div>
             ))}
           </div>
