@@ -173,8 +173,6 @@ export function MapHeatmap({ points, alerts, lowBandwidth, selectedAlertId, onSe
   if (!hasToken || lowBandwidth) {
     return (
       <div className="radar-stage h-full min-h-[calc(100vh-65px)] bg-background p-4 pt-20 lg:p-6 lg:pt-20">
-        <div className="radar-grid" aria-hidden="true" />
-        <div className="radar-sweep" aria-hidden="true" />
         <div className="relative mx-auto max-w-3xl rounded-lg border border-border bg-background/90 p-4">
           <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">
             {lowBandwidth ? "List-Only Mode" : "Mapbox Token Missing"}
@@ -194,8 +192,7 @@ export function MapHeatmap({ points, alerts, lowBandwidth, selectedAlertId, onSe
   return (
     <div className="map-stage h-full min-h-[calc(100vh-65px)] w-full">
       <div className="map-vignette" aria-hidden="true" />
-      <div className="scanline" aria-hidden="true" />
-      <div ref={containerRef} className="h-full min-h-[calc(100vh-65px)] w-full" aria-label="Live tactical alert map" role="img" />
+      <div ref={containerRef} className="h-full min-h-[calc(100vh-65px)] w-full" aria-label="Live tactical alert map" role="application" aria-roledescription="interactive map" />
       {selectedAlertId && <span className="sr-only" aria-live="polite">Alert {selectedAlertId} selected.</span>}
     </div>
   );
