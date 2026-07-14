@@ -33,7 +33,7 @@ html {
 body {
   color: hsl(var(--foreground));
   background: hsl(var(--background));
-  font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
+  font-family: var(--font-body), Arial, Helvetica, sans-serif;
 }
 
 button,
@@ -335,5 +335,8 @@ select {
 @layer utilities {
   .text-balance {
     text-wrap: balance;
+  }
+  .font-heading {
+    font-family: var(--font-heading), var(--font-body), sans-serif;
   }
 }
