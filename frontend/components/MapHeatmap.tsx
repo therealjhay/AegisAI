@@ -53,7 +53,7 @@ function fallbackRows(alerts: PriorityAlert[]) {
         <span className="block text-sm font-semibold text-foreground">{alert.incidentType ?? alert.sector}</span>
         <span className="block text-xs text-muted-foreground">{alert.source}</span>
       </span>
-      <span className="rounded-md bg-red-500/15 px-2 py-1 text-xs font-bold text-red-100">U{alert.urgencyScore}</span>
+      <span className="rounded-md bg-red-600 px-2 py-1 text-xs font-bold text-white">U{alert.urgencyScore}</span>
     </button>
   ));
 }

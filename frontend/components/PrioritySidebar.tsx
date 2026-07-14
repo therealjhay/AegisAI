@@ -23,9 +23,9 @@ function incidentLabel(alert: PriorityAlert): string {
 
 function badgeClass(alert: PriorityAlert): string {
   const label = incidentLabel(alert);
-  if (alert.urgencyScore >= 5 || label === "Terrorism") return "border-red-400/60 bg-red-500/15 text-red-100";
-  if (label === "Flood") return "border-amber-400/60 bg-amber-500/15 text-amber-100";
-  return "border-emerald-400/50 bg-emerald-500/15 text-emerald-100";
+  if (alert.urgencyScore >= 5 || label === "Terrorism") return "border-red-500 bg-red-600 text-white";
+  if (label === "Flood") return "border-amber-500 bg-amber-600 text-black";
+  return "border-emerald-500 bg-emerald-600 text-white";
 }
 
 function headline(alert: PriorityAlert): string {
@@ -71,7 +71,7 @@ export function PrioritySidebar({ alerts, loading, error, selectedAlertId, onRet
     >
       <button
         type="button"
-        className="sheet-handle flex h-8 w-full items-center justify-center lg:hidden"
+        className="sheet-handle flex h-11 w-full items-center justify-center lg:hidden"
         aria-label={sheetExpanded ? "Collapse alert sheet" : "Expand alert sheet"}
         onClick={() => setSheetExpanded((value) => !value)}
         onPointerDown={(event) => { dragStartY.current = event.clientY; }}
