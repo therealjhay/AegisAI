@@ -155,7 +155,7 @@ export function MapHeatmap({ points, alerts, lowBandwidth, selectedAlertId, onSe
         map.getCanvas().addEventListener("keydown", (event: KeyboardEvent) => {
           if (event.key !== "Enter" && event.key !== " ") return;
           const center = map.getCenter();
-          const features = map.queryRenderedFeatures(undefined, {
+          const features = map.queryRenderedFeatures({
             layers: ["alert-points"],
           });
           if (features.length === 0) return;
