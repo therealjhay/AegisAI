@@ -44,7 +44,8 @@ export type Vote = {
   score: number;
   reasoning: string;
   signature: string;
-  toolProofs: Record<string, unknown>;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  toolProofs: Record<string, any>;
 };
 
 function triangulator(inp: SwarmInput): Vote {
@@ -131,15 +132,15 @@ function governor(inp: SwarmInput & { vault?: { reserveUSD: number; dailyLimitUS
 
 export async function runSwarmQuorum(input: SwarmInput & { vault?: { reserveUSD: number; dailyLimitUSD: number; disbursedTodayUSD: number } }): Promise<{ votes: Vote[]; yesCount: number; quorumReached: boolean; status: string; tier: number; cappedAmountUSD: number; quorumHash: string; clusterId: string }> {
   const tri = triage(input);
-  const tier = (tri.toolProofs as any).tier as number;
-  const amount = (tri.toolProofs as any).amount as number;
+  const tier = tri.toolProofs.tier as number;
+  const amount = tri.toolProofs.amount as number;
   const tria = triangulator(input);
   const fact = factChecker(input);
-  const gov = governor({ ...input, tier, requested: amount } as any);
+  const gov = governor({ ...input, tier, requested: amount });
   const votes = [tria, fact, tri, gov];
   const yesCount = votes.filter((v) => v.vote === "yes").length;
   const quorumReached = yesCount >= 3;
-  const cappedAmountUSD = (gov.toolProofs as any).effective as number;
+  const cappedAmountUSD = gov.toolProofs.effective as number;
   let status: string;
   if (quorumReached && cappedAmountUSD > 0) status = "verified";
   else if (votes.filter((v) => v.vote === "no").length >= 2) status = "quarantined";

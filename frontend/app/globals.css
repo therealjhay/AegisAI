@@ -5,35 +5,62 @@
 @tailwind utilities;
 
 :root {
-  --background: 240 5% 4%;
-  --foreground: 220 14% 96%;
-  --card: 240 4% 9%;
-  --card-foreground: 220 14% 96%;
-  --primary: 0 84% 60%;
-  --primary-foreground: 0 0% 100%;
-  --secondary: 240 4% 14%;
-  --secondary-foreground: 220 14% 96%;
-  --muted: 240 4% 16%;
-  --muted-foreground: 220 9% 68%;
-  --accent: 160 84% 39%;
-  --accent-foreground: 0 0% 3%;
-  --border: 240 4% 18%;
-  --input: 240 4% 22%;
-  --ring: 38 92% 50%;
+  /* Soft Signal · Amber — warm · premium · minimal */
+  color-scheme: dark;
+  --background: 0.12 0.012 75;
+  --foreground: 0.97 0.01 75;
+  --card: 0.17 0.015 75;
+  --card-foreground: 0.97 0.01 75;
+  --popover: 0.19 0.015 75;
+  --popover-foreground: 0.97 0.01 75;
+  --primary: 0.70 0.12 35;
+  --primary-foreground: 0.10 0 0;
+  --secondary: 0.21 0.02 75;
+  --secondary-foreground: 0.97 0.01 75;
+  --muted: 0.19 0.015 75;
+  --muted-foreground: 0.67 0.01 75;
+  --accent: 0.23 0.025 71;
+  --accent-foreground: 0.97 0.01 75;
+  --destructive: 0.65 0.22 25;
+  --destructive-foreground: 0.98 0 0;
+  --border: 0.25 0.02 75;
+  --input: 0.17 0.015 75;
+  --ring: 0.70 0.12 35;
+  --radius: 0.5rem;
+}
+
+.light {
+  color-scheme: light;
+  --background: 0.99 0.01 75;
+  --foreground: 0.16 0.02 50;
+  --card: 1 0 0;
+  --card-foreground: 0.16 0.02 50;
+  --popover: 1 0 0;
+  --popover-foreground: 0.16 0.02 50;
+  --primary: 0.48 0.12 35;
+  --primary-foreground: 0.99 0 0;
+  --secondary: 0.95 0.01 75;
+  --secondary-foreground: 0.16 0.02 50;
+  --muted: 0.96 0.01 75;
+  --muted-foreground: 0.45 0.02 50;
+  --accent: 0.94 0.018 72;
+  --accent-foreground: 0.16 0.02 50;
+  --destructive: 0.55 0.22 25;
+  --destructive-foreground: 0.98 0 0;
+  --border: 0.91 0.01 75;
+  --input: 0.97 0.01 75;
+  --ring: 0.48 0.12 35;
+  --radius: 0.5rem;
 }
 
 * {
   box-sizing: border-box;
 }
 
-html {
-  color-scheme: dark;
-}
-
 body {
-  color: hsl(var(--foreground));
-  background: hsl(var(--background));
-  font-family: var(--font-body), Arial, Helvetica, sans-serif;
+  color: oklch(var(--foreground));
+  background: oklch(var(--background));
+  font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
 }
 
 button,
@@ -56,11 +83,11 @@ select {
 
 @keyframes tactical-pulse {
   0%, 100% {
-    box-shadow: 0 0 0 0 rgb(16 185 129 / 0.55);
+    box-shadow: 0 0 0 0 rgb(224 146 88 / 0.55);
     opacity: 1;
   }
   70% {
-    box-shadow: 0 0 0 8px rgb(16 185 129 / 0);
+    box-shadow: 0 0 0 8px rgb(224 146 88 / 0);
     opacity: 0.72;
   }
 }
@@ -83,7 +110,7 @@ select {
   inset: 0;
   pointer-events: none;
   z-index: 60;
-  background: linear-gradient(90deg, transparent, rgb(16 185 129 / 0.12), transparent);
+  background: linear-gradient(90deg, transparent, rgb(224 146 88 / 0.12), transparent);
   transform: translateX(-110%);
   animation: boot-scan 760ms var(--ease-out-expo) 120ms both;
 }
@@ -94,7 +121,7 @@ select {
 
 .brand-lockup {
   position: relative;
-  text-shadow: 0 0 20px hsl(var(--primary) / 0.25);
+  text-shadow: 0 0 20px oklch(var(--primary) / 0.25);
 }
 
 .brand-lockup::after {
@@ -104,7 +131,7 @@ select {
   right: 42%;
   bottom: -5px;
   height: 1px;
-  background: linear-gradient(90deg, hsl(var(--primary)), transparent);
+  background: linear-gradient(90deg, oklch(var(--primary)), transparent);
   transform-origin: left;
   animation: line-charge 900ms var(--ease-out-expo) 260ms both;
   will-change: transform;
@@ -158,7 +185,7 @@ select {
 
 .sheet-handle:hover span {
   width: 4rem;
-  background: hsl(var(--foreground) / 0.58);
+  background: oklch(var(--foreground) / 0.58);
 }
 
 .feed-entry {
@@ -206,7 +233,7 @@ select {
 }
 
 .fund-button {
-  box-shadow: 0 0 0 0 rgb(16 185 129 / 0.38);
+  box-shadow: 0 0 0 0 rgb(224 146 88 / 0.38);
   animation: response-ready 2.4s var(--ease-out-quart) infinite;
 }
 
@@ -230,8 +257,8 @@ select {
   right: 0;
   top: 0;
   height: 2px;
-  background: hsl(var(--accent));
-  box-shadow: 0 0 14px hsl(var(--accent));
+  background: oklch(var(--accent));
+  box-shadow: 0 0 14px oklch(var(--accent));
   animation: qr-read 1.8s var(--ease-out-quart) infinite;
 }
 
@@ -250,7 +277,7 @@ select {
   inset: 0;
   z-index: 1;
   pointer-events: none;
-  background: radial-gradient(circle at center, transparent 40%, hsl(var(--background) / 0.7));
+  background: radial-gradient(circle at center, transparent 40%, oklch(var(--background) / 0.7));
 }
 
 @keyframes boot-scan {
@@ -297,8 +324,8 @@ select {
 }
 
 @keyframes response-ready {
-  0%, 100% { box-shadow: 0 0 0 0 rgb(16 185 129 / 0.34); }
-  60% { box-shadow: 0 0 0 8px rgb(16 185 129 / 0); }
+  0%, 100% { box-shadow: 0 0 0 0 rgb(224 146 88 / 0.34); }
+  60% { box-shadow: 0 0 0 8px rgb(224 146 88 / 0); }
 }
 
 @keyframes fade-in {
@@ -337,6 +364,6 @@ select {
     text-wrap: balance;
   }
   .font-heading {
-    font-family: var(--font-heading), var(--font-body), sans-serif;
+    font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
   }
 }

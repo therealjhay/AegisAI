@@ -46,6 +46,7 @@ export async function POST(request: NextRequest) {
     let isNewCluster = false;
     const target = financial_target_usd ?? 0;
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const nearby = (recent.rows as any[]).find((c) => haversine(c.lat, c.lon, coordinates.lat, coordinates.lon) <= 1000);
 
     if (nearby) {

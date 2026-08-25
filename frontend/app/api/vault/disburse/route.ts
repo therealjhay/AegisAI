@@ -4,6 +4,9 @@ import { verifyVote, quorumHash, mockTxSignature } from "@/lib/swarm";
 
 export const dynamic = "force-dynamic";
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type Row = Record<string, any>;
+
 function isVaultTableMissing(e: unknown): boolean {
   const msg = (e as Error).message ?? "";
   return msg.includes('relation "Vault_State"') || msg.includes("does not exist");
@@ -23,12 +26,12 @@ export async function POST(request: NextRequest) {
     const vres = await pool.query(`SELECT agent_type, vote, score, signature, tool_proofs FROM "Agent_Votes" WHERE cluster_id=$1`, [clusterId]);
     if (vres.rows.length === 0) return NextResponse.json({ error: "No votes found — run /api/swarm/verify first" }, { status: 400 });
 
-    const votes = vres.rows.map((r) => ({
+    const votes = vres.rows.map((r: Row) => ({
       agentType: r.agent_type as string,
       vote: r.vote as string,
       score: Number(r.score),
       signature: r.signature as string,
-      toolProofs: r.tool_proofs as any,
+      toolProofs: r.tool_proofs as Record<string, unknown>,
     }));
 
     // Verify signatures
@@ -45,9 +48,9 @@ export async function POST(request: NextRequest) {
     // Governor effective amount
     const gov = votes.find((v) => v.agentType === "risk_governor");
     const tri = votes.find((v) => v.agentType === "triage_evaluator");
-    let amountUSD = (gov?.toolProofs as any)?.effective as number | undefined;
+    let amountUSD = (gov?.toolProofs as Record<string, unknown>)?.effective as number | undefined;
     if (!amountUSD) {
-      const tier = (tri?.toolProofs as any)?.tier ?? cluster.tier ?? 2;
+      const tier = (tri?.toolProofs as Record<string, unknown>)?.tier as number | undefined ?? cluster.tier ?? 2;
       const caps: Record<number, number> = { 1: 0, 2: 5000, 3: 15000, 4: 25000 };
       amountUSD = caps[tier] ?? 5000;
     }
@@ -86,7 +89,7 @@ export async function POST(request: NextRequest) {
     const txSig = mockTxSignature(clusterId, qHash, amountUSD);
     const explorerUrl = `https://explorer.sonic.game/tx/${txSig}?cluster=devnet`;
 
-    const tier = (tri?.toolProofs as any)?.tier ?? cluster.tier ?? 2;
+    const tier = (tri?.toolProofs as Record<string, unknown>)?.tier as number ?? cluster.tier ?? 2;
 
     const disb = await pool.query(
       `INSERT INTO "Disbursement_Txs" (id, cluster_id, amount_usd, recipient_wallet, recipient_org, quorum_hash, tx_signature, explorer_url, tier, status) VALUES (gen_random_uuid(), $1,$2,$3,$4,$5,$6,$7,$8,'confirmed') RETURNING id::text as id, tx_signature, explorer_url`,

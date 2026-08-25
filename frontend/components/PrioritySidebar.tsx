@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { AnimatePresence, motion } from "framer-motion";
 
 import type { PriorityAlert } from "@/components/CommandCenter";
 
@@ -21,11 +21,11 @@ function incidentLabel(alert: PriorityAlert): string {
   return alert.sector || "General";
 }
 
-function badgeClass(alert: PriorityAlert): string {
+function badgeColor(alert: PriorityAlert): string {
   const label = incidentLabel(alert);
-  if (alert.urgencyScore >= 5 || label === "Terrorism") return "border-red-500 bg-red-600 text-white";
-  if (label === "Flood") return "border-amber-500 bg-amber-600 text-black";
-  return "border-emerald-500 bg-emerald-600 text-white";
+  if (alert.urgencyScore >= 5 || label === "Terrorism") return "bg-red-500/10 text-red-400 border-red-500/30";
+  if (label === "Flood") return "bg-amber-500/10 text-amber-400 border-amber-500/30";
+  return "bg-primary/10 text-primary border-primary/30";
 }
 
 function headline(alert: PriorityAlert): string {
@@ -51,121 +51,182 @@ function progress(alert: PriorityAlert): number {
   return Math.round((raised(alert) / target(alert)) * 100);
 }
 
-export function PrioritySidebar({ alerts, loading, error, selectedAlertId, onRetry, onSelect, timeAgo }: PrioritySidebarProps) {
-  const [sheetExpanded, setSheetExpanded] = useState(false);
-  const dragStartY = useRef<number | null>(null);
+const variants = {
+  hidden: { opacity: 0, y: 12, scale: 0.97 },
+  visible: (i: number) => ({
+    opacity: 1,
+    y: 0,
+    scale: 1,
+    transition: { delay: Math.min(i * 0.04, 0.32), type: "spring" as const, stiffness: 280, damping: 24 },
+  }),
+};
 
-  const finishDrag = (clientY: number) => {
-    if (dragStartY.current === null) return;
-    const delta = clientY - dragStartY.current;
-    if (Math.abs(delta) > 24) setSheetExpanded(delta < 0);
-    dragStartY.current = null;
-  };
-
+function Skeleton({ delay }: { delay: number }) {
   return (
-    <aside
-      className={`triage-sheet fixed inset-x-0 bottom-0 z-20 overflow-hidden rounded-t-lg border-t border-border bg-card shadow-2xl lg:relative lg:inset-auto lg:z-auto lg:max-h-none lg:rounded-none lg:border-r lg:border-t-0 lg:shadow-none ${
-        sheetExpanded ? "max-h-[82vh]" : "max-h-[58vh]"
-      }`}
-      aria-labelledby="priority-title"
+    <motion.div
+      variants={variants}
+      initial="hidden"
+      animate="visible"
+      custom={delay}
+      className="rounded-lg border border-border bg-card p-3"
     >
-      <button
-        type="button"
-        className="sheet-handle flex h-11 w-full items-center justify-center lg:hidden"
-        aria-label={sheetExpanded ? "Collapse alert sheet" : "Expand alert sheet"}
-        onClick={() => setSheetExpanded((value) => !value)}
-        onPointerDown={(event) => { dragStartY.current = event.clientY; }}
-        onPointerUp={(event) => finishDrag(event.clientY)}
-        onPointerCancel={() => { dragStartY.current = null; }}
-      >
-        <span className="h-1.5 w-12 rounded-full bg-muted" aria-hidden="true" />
-      </button>
-      <div className="flex items-center justify-between border-b border-border p-4">
-        <div>
-          <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">Command Feed</p>
-          <h2 id="priority-title" className="text-base font-semibold text-foreground">Priority Triage</h2>
-        </div>
-        <button
-          type="button"
-          onClick={onRetry}
-          className="tactical-button h-11 min-w-11 rounded-md border border-border px-3 text-sm font-medium text-foreground transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-        >
-          Refresh
-        </button>
-      </div>
+      <div className="h-4 w-24 rounded bg-muted/60 animate-pulse" />
+      <div className="mt-3 h-5 w-full rounded bg-muted/40 animate-pulse" />
+      <div className="mt-4 h-2 w-full rounded bg-muted/40 animate-pulse" />
+    </motion.div>
+  );
+}
 
-      <div
-        className={`overflow-y-auto p-3 lg:h-[calc(100vh-143px)] lg:max-h-none ${
-          sheetExpanded ? "max-h-[calc(82vh-110px)]" : "max-h-[calc(58vh-110px)]"
-        }`}
-      >
-        {loading && (
-          <div className="space-y-3" aria-live="polite" aria-busy="true">
-            {Array.from({ length: 6 }).map((_, idx) => (
-              <div key={idx} className="rounded-lg border border-border bg-background p-3">
-                <div className="h-4 w-28 animate-pulse rounded bg-border/50" />
-                <div className="mt-3 h-5 w-full animate-pulse rounded bg-border/50" />
-                <div className="mt-4 h-2 w-full animate-pulse rounded bg-border/50" />
-              </div>
-            ))}
-          </div>
-        )}
+export function PrioritySidebar({ alerts, loading, error, selectedAlertId, onRetry, onSelect, timeAgo }: PrioritySidebarProps) {
+  return (
+    <motion.aside
+      layout
+      className="relative z-20 flex flex-col overflow-hidden rounded-t-2xl border border-border bg-card shadow-2xl lg:static lg:z-auto lg:max-h-none lg:rounded-none lg:border-r lg:border-t-0 lg:shadow-none"
+      aria-labelledby="priority-title"
+      initial={false}
+    >
+      <div className="relative flex flex-1 flex-col overflow-hidden">
+        <AnimatePresence mode="wait">
+          {loading && (
+            <motion.div
+              key="loading"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="space-y-3 p-3"
+              aria-live="polite"
+              aria-busy="true"
+            >
+              {Array.from({ length: 5 }).map((_, idx) => (
+                <Skeleton key={idx} delay={idx * 0.06} />
+              ))}
+            </motion.div>
+          )}
+        </AnimatePresence>
 
-        {!loading && error && (
-          <div className="mb-3 rounded-lg border border-amber-500/60 bg-amber-500/10 p-3">
-            <p className="text-sm font-medium text-amber-100">Live stream degraded.</p>
-            <p className="mt-1 text-xs text-amber-100/90">{error}</p>
-            {alerts.length === 0 && (
-              <button
-                type="button"
-                onClick={onRetry}
-                className="tactical-button mt-3 h-11 rounded-md border border-amber-300 px-3 text-sm font-medium text-amber-100 hover:bg-amber-500/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-              >
-                Retry
-              </button>
-            )}
-          </div>
-        )}
+        <AnimatePresence mode="wait">
+          {!loading && error && (
+            <motion.div
+              key="error"
+              initial={{ opacity: 0, y: -8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0 }}
+              className="m-3 rounded-lg border border-amber-500/30 bg-amber-500/5 p-3"
+            >
+              <p className="text-sm font-medium text-amber-300">Live stream degraded.</p>
+              <p className="mt-1 text-xs text-amber-300/70">{error}</p>
+              {alerts.length === 0 && (
+                <motion.button
+                  type="button"
+                  onClick={onRetry}
+                  whileTap={{ scale: 0.96 }}
+                  className="mt-3 rounded-md border border-amber-500/40 px-3 py-2 text-xs font-medium text-amber-300 transition-colors hover:bg-amber-500/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                >
+                  Retry
+                </motion.button>
+              )}
+            </motion.div>
+          )}
+        </AnimatePresence>
 
-        {!loading && alerts.length === 0 && (
-          <div className="rounded-lg border border-border bg-background p-4 text-center">
+        {!loading && !error && alerts.length === 0 && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="m-3 rounded-lg border border-border bg-background p-4 text-center"
+          >
             <p className="text-sm font-medium text-foreground">No matching alerts</p>
             <p className="mt-1 text-xs text-muted-foreground">Clear filters or enable simulation mode.</p>
+          </motion.div>
+        )}
+
+        {!loading && !error && alerts.length > 0 && (
+          <div className="flex items-center justify-between border-b border-border px-4 pb-3 pt-3">
+            <div>
+              <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">Alert Feed</p>
+              <h2 id="priority-title" className="text-sm font-semibold text-foreground">
+                Active Incidents <span className="text-muted-foreground">· {alerts.length}</span>
+              </h2>
+            </div>
+            <motion.button
+              type="button"
+              onClick={onRetry}
+              whileTap={{ scale: 0.94 }}
+              className="rounded-md border border-border px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              Refresh
+            </motion.button>
           </div>
         )}
 
-        {!loading && alerts.length > 0 && (
-          <ol className="space-y-3">
-            {alerts.map((alert, index) => (
-              <li key={alert.id} className="feed-entry" style={{ animationDelay: `${Math.min(index * 45, 360)}ms` }}>
-                <button
-                  type="button"
-                  onClick={() => onSelect(alert.id)}
-                  className={`alert-card w-full rounded-lg border p-3 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background ${
-                    selectedAlertId === alert.id ? "border-primary bg-primary/10" : "border-border bg-background hover:bg-muted/70"
-                  }`}
+        {!loading && !error && alerts.length > 0 && (
+          <motion.ol
+            className="flex-1 space-y-2 overflow-y-auto overscroll-contain p-3 lg:max-h-[calc(100vh-200px)]"
+            initial={false}
+          >
+            <AnimatePresence mode="popLayout">
+              {alerts.map((alert, index) => (
+                <motion.li
+                  key={alert.id}
+                  layout
+                  variants={variants}
+                  initial="hidden"
+                  animate="visible"
+                  exit={{ opacity: 0, scale: 0.95, transition: { duration: 0.15 } }}
+                  custom={index}
                 >
-                  <div className="flex items-center justify-between gap-2">
-                    <span className={`inline-flex min-h-8 items-center rounded-md border px-2 text-xs font-bold ${badgeClass(alert)}`}>
-                      {incidentLabel(alert)}
-                    </span>
-                    <span className="text-xs tabular-nums text-muted-foreground">{timeAgo(alert.timestamp)}</span>
-                  </div>
-                  <p className="mt-3 text-sm font-semibold leading-5 text-foreground">{headline(alert)}</p>
-                  <p className="mt-1 line-clamp-2 text-xs leading-5 text-muted-foreground">{alert.rawText}</p>
-                  <div className="mt-3 flex items-center justify-between text-xs text-muted-foreground">
-                    <span>U{alert.urgencyScore} priority</span>
-                    <span>${raised(alert).toLocaleString()} / ${target(alert).toLocaleString()}</span>
-                  </div>
-                  <div className="mt-2 h-2 overflow-hidden rounded-full bg-muted" aria-label={`Funding ${progress(alert)} percent complete`}>
-                    <div className="funding-fill h-full rounded-full bg-emerald-500" style={{ width: `${progress(alert)}%` }} />
-                  </div>
-                </button>
-              </li>
-            ))}
-          </ol>
+                  <motion.button
+                    type="button"
+                    onClick={() => onSelect(alert.id)}
+                    whileHover={{ scale: 1.01 }}
+                    whileTap={{ scale: 0.98 }}
+                    className={`w-full rounded-xl border p-3 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background ${
+                      selectedAlertId === alert.id
+                        ? "border-primary bg-primary/8 shadow-sm shadow-primary/5"
+                        : "border-border bg-background hover:bg-muted/50"
+                    }`}
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <span
+                        className={`inline-flex items-center rounded-md border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${badgeColor(alert)}`}
+                      >
+                        {incidentLabel(alert)}
+                      </span>
+                      <span className="text-[11px] tabular-nums text-muted-foreground">{timeAgo(alert.timestamp)}</span>
+                    </div>
+                    <p className="mt-2 text-sm font-semibold leading-5 text-foreground">{headline(alert)}</p>
+                    <p className="mt-0.5 line-clamp-2 text-xs leading-5 text-muted-foreground">{alert.rawText}</p>
+                    <div className="mt-3 flex items-center justify-between text-[11px] text-muted-foreground">
+                      <span className="tabular-nums">
+                        U<span className="font-semibold text-foreground">{alert.urgencyScore}</span>
+                      </span>
+                      <span className="tabular-nums">
+                        <span className="font-semibold text-foreground">${raised(alert).toLocaleString()}</span> / ${target(alert).toLocaleString()}
+                      </span>
+                    </div>
+                    <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-muted" aria-label={`Funding ${progress(alert)}%`}>
+                      <motion.div
+                        className="h-full rounded-full"
+                        style={{
+                          background:
+                            progress(alert) >= 80
+                              ? "linear-gradient(90deg, oklch(0.65 0.15 140), oklch(0.55 0.18 140))"
+                            : progress(alert) >= 40
+                              ? "linear-gradient(90deg, oklch(0.70 0.12 35), oklch(0.62 0.14 35))"
+                              : "linear-gradient(90deg, oklch(0.70 0.12 35), oklch(0.58 0.16 15))",
+                        }}
+                        initial={{ width: 0 }}
+                        animate={{ width: `${progress(alert)}%` }}
+                        transition={{ duration: 0.6, ease: "easeOut" }}
+                      />
+                    </div>
+                  </motion.button>
+                </motion.li>
+              ))}
+            </AnimatePresence>
+          </motion.ol>
         )}
       </div>
-    </aside>
+    </motion.aside>
   );
 }

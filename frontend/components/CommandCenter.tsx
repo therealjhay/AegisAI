@@ -1,10 +1,14 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { AnimatePresence, motion } from "framer-motion";
 
 import { MapHeatmap } from "@/components/MapHeatmap";
 import { PrioritySidebar } from "@/components/PrioritySidebar";
+import { SwarmPanel } from "@/components/SwarmPanel";
+import { AuditView } from "@/components/AuditView";
+// VaultStateDisplay available via /api/vault/state — shown in SwarmPanel
 
 export type HeatmapPoint = {
   id: string;
@@ -15,6 +19,7 @@ export type HeatmapPoint = {
   fundingDeficit?: number;
   sector?: string;
   timestamp?: string;
+  clusterId?: string;
 };
 
 export type PriorityAlert = {
@@ -30,11 +35,13 @@ export type PriorityAlert = {
   timestamp: string;
   verified?: boolean;
   simulated?: boolean;
+  clusterId?: string;
 };
 
 type HeatmapResponse = { points: HeatmapPoint[] };
 type PriorityResponse = { alerts: PriorityAlert[] };
 type SectorsResponse = { sectors: string[] };
+type IngestResponse = { decision: string; clusterId: string; alertId: string; isNewCluster: boolean };
 
 type FilterKey = "All" | "Terrorism" | "Natural Disasters" | "High Deficit";
 
@@ -145,17 +152,23 @@ function createResiliencePoints(alerts: PriorityAlert[]): HeatmapPoint[] {
 }
 
 function createSimulationAlert(index: number): PriorityAlert {
-  const target = 125000 + index * 15000;
-  const raised = 8000 + index * 2500;
+  const targets = [
+    { text: "Flash flood waters rapidly rising near Old Bridge, families trapped, road access blocked.", type: "Natural Disaster", urgency: 5 },
+    { text: "Wildfire spreading fast toward residential area, evacuation underway, multiple structures threatened.", type: "Natural Disaster", urgency: 4 },
+    { text: "Armed attack reported near Maiduguri Market. Medical evacuation requested, casualties unconfirmed.", type: "Terrorism", urgency: 5 },
+    { text: "Earthquake 5.2 magnitude felt in Lagos. Building damage reported, search and rescue mobilizing.", type: "Natural Disaster", urgency: 4 },
+  ];
+  const t = targets[index % targets.length];
+  const target = 40000 + index * 12000;
   return {
     id: `simulation-${Date.now()}-${index}`,
-    rawText: "Armed attack reported near Maiduguri Market. Medical evacuation requested, north access road blocked, civilian casualties unconfirmed.",
+    rawText: t.text,
     source: "Simulation Mode",
-    incidentType: "Terrorism",
-    urgencyScore: 5,
+    incidentType: t.type,
+    urgencyScore: t.urgency,
     financialTargetUSD: target,
-    financialRaisedUSD: raised,
-    fundingDeficit: target - raised,
+    financialRaisedUSD: 0,
+    fundingDeficit: target,
     sector: "Rescue",
     timestamp: new Date().toISOString(),
     simulated: true,
@@ -167,6 +180,7 @@ function alertToPoint(alert: PriorityAlert, index: number): HeatmapPoint {
     [13.18, 11.84],
     [13.2, 11.82],
     [13.16, 11.86],
+    [13.19, 11.83],
   ];
   const [lon, lat] = offsets[index % offsets.length];
   return {
@@ -181,11 +195,28 @@ function alertToPoint(alert: PriorityAlert, index: number): HeatmapPoint {
   };
 }
 
+const panelVariants = {
+  hidden: { x: "100%", opacity: 0 },
+  visible: { x: 0, opacity: 1, transition: { type: "spring" as const, damping: 28, stiffness: 260 } },
+  exit: { x: "100%", opacity: 0, transition: { duration: 0.18, ease: "easeIn" as const } },
+};
+
+const headerVariants = {
+  hidden: { y: -16, opacity: 0 },
+  visible: { y: 0, opacity: 1, transition: { type: "spring" as const, damping: 24, stiffness: 220 } },
+};
+
+const statBarVariants = {
+  hidden: { y: 12, opacity: 0 },
+  visible: (i: number) => ({ y: 0, opacity: 1, transition: { delay: 0.12 + i * 0.06, type: "spring" as const, damping: 22, stiffness: 200 } }),
+};
+
 export function CommandCenter() {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const selectedSector = searchParams.get("sector") ?? "All";
+  const prevAlertCount = useRef(0);
 
   const [quickFilter, setQuickFilter] = useState<FilterKey>("All");
   const [sectors, setSectors] = useState<string[]>(fallbackSectors);
@@ -198,7 +229,13 @@ export function CommandCenter() {
   const [online, setOnline] = useState<boolean>(true);
   const [lowBandwidth, setLowBandwidth] = useState<boolean>(false);
   const [simulationMode, setSimulationMode] = useState<boolean>(false);
-  const [fundingOpen, setFundingOpen] = useState<boolean>(false);
+
+  // Swarm / Audit / Disbursement state
+  const [activeRightPanel, setActiveRightPanel] = useState<"swarm" | "audit" | null>(null);
+  const [activeClusterId, setActiveClusterId] = useState<string | null>(null);
+  const [injecting, setInjecting] = useState(false);
+  const [injectText, setInjectText] = useState("");
+  const [disburseResult, setDisburseResult] = useState<{ txSignature: string; explorerUrl: string; amountUSD: number } | null>(null);
 
   const fetchData = useCallback(async () => {
     const sectorParam = selectedSector && selectedSector !== "All" ? `?sector=${encodeURIComponent(selectedSector)}` : "";
@@ -254,29 +291,31 @@ export function CommandCenter() {
 
   useEffect(() => {
     if (!simulationMode) return;
-    setSimulatedAlerts((current) => [createSimulationAlert(current.length), ...current].slice(0, 6));
+    setSimulatedAlerts((current) => [createSimulationAlert(current.length), ...current].slice(0, 8));
     const interval = setInterval(() => {
-      setSimulatedAlerts((current) => [createSimulationAlert(current.length), ...current].slice(0, 6));
-    }, 30_000);
+      setSimulatedAlerts((current) => [createSimulationAlert(current.length), ...current].slice(0, 8));
+    }, 25_000);
     return () => clearInterval(interval);
   }, [simulationMode]);
 
   useEffect(() => {
     const closeOnEscape = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
+        if (activeRightPanel) { setActiveRightPanel(null); return; }
         setSelectedAlertId(null);
-        setFundingOpen(false);
       }
     };
     window.addEventListener("keydown", closeOnEscape);
     return () => window.removeEventListener("keydown", closeOnEscape);
-  }, []);
+  }, [activeRightPanel]);
 
   const mergedAlerts = useMemo(() => {
-    return [...simulatedAlerts, ...alerts]
+    const result = [...simulatedAlerts, ...alerts]
       .filter((alert) => (selectedSector === "All" ? true : alert.sector === selectedSector))
       .filter((alert) => matchesQuickFilter(alert, quickFilter))
       .sort((a, b) => priorityValue(b) - priorityValue(a));
+    prevAlertCount.current = result.length;
+    return result;
   }, [alerts, quickFilter, selectedSector, simulatedAlerts]);
 
   const mergedPoints = useMemo(() => {
@@ -297,35 +336,91 @@ export function CommandCenter() {
     router.replace(nextQuery ? `${pathname}?${nextQuery}` : pathname);
   };
 
-  const verifySelectedAlert = () => {
-    if (!selectedAlert) return;
-    const apply = (alert: PriorityAlert) => (alert.id === selectedAlert.id ? { ...alert, verified: true } : alert);
-    setAlerts((current) => current.map(apply));
-    setSimulatedAlerts((current) => current.map(apply));
+  const injectIncident = async () => {
+    const text = injectText.trim();
+    if (!text) return;
+    setInjecting(true);
+    setDisburseResult(null);
+    try {
+      const res = await fetch("/api/ingest", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          raw_text: text,
+          source: "simulation_inject",
+          coordinates: { lat: 11.84 + (Math.random() - 0.5) * 0.05, lon: 13.15 + (Math.random() - 0.5) * 0.05 },
+          urgency_score: /trapped|swept away|fatal|dead/i.test(text) ? 5 : /injured|rapidly rising/i.test(text) ? 4 : 3,
+          financial_target_usd: /hundreds|many/i.test(text) ? 80000 : 25000,
+        }),
+      });
+      const data: IngestResponse = await res.json();
+      if (data.clusterId) {
+        setActiveClusterId(data.clusterId);
+        setActiveRightPanel("swarm");
+      }
+      setInjectText("");
+      fetchData();
+    } catch {
+      setError("Failed to inject incident");
+    } finally {
+      setInjecting(false);
+    }
+  };
+
+  const openSwarmForAlert = (alert: PriorityAlert) => {
+    const cid = alert.clusterId ?? alert.id;
+    setActiveClusterId(cid);
+    setActiveRightPanel("swarm");
+    setDisburseResult(null);
+  };
+
+  const openAuditForAlert = (alert: PriorityAlert) => {
+    const cid = alert.clusterId ?? alert.id;
+    setActiveClusterId(cid);
+    setActiveRightPanel("audit");
+  };
+
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const handleDisburse = async (clusterId: string, _cappedAmount: number) => {
+    const res = await fetch("/api/vault/disburse", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ clusterId }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Disbursement failed");
+    setDisburseResult({ txSignature: data.txSignature, explorerUrl: data.explorerUrl, amountUSD: data.amountUSD });
+    fetchData();
+    return data;
   };
 
   return (
-    <main className="app-shell min-h-screen bg-background text-foreground">
-      <header className="command-header sticky top-0 z-30 border-b border-border bg-background/95 backdrop-blur">
-        <div className="grid min-h-16 gap-3 px-4 py-3 lg:grid-cols-[320px_minmax(0,1fr)_320px] lg:items-center lg:px-6">
-          <div className="flex items-center justify-between gap-3 lg:justify-start">
-            <div>
-              <p className="brand-lockup text-lg font-semibold tracking-tight">AegisAI</p>
-              <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">Tactical Dashboard</p>
+    <main className="min-h-screen bg-background text-foreground">
+      <motion.header
+        variants={headerVariants}
+        initial="hidden"
+        animate="visible"
+        className="sticky top-0 z-30 border-b border-border bg-background/80 backdrop-blur-xl"
+      >
+        <div className="flex min-h-14 items-center gap-3 px-4 py-2 lg:grid lg:grid-cols-[280px_minmax(0,1fr)_280px] lg:px-6">
+          <div className="flex items-center gap-3">
+            <div className="min-w-0">
+              <h1 className="text-base font-semibold tracking-tight text-foreground">AegisAI</h1>
+              <p className="text-[11px] uppercase tracking-[0.15em] text-muted-foreground">Autonomous Dispatcher</p>
             </div>
-            <span className="inline-flex h-11 items-center gap-2 rounded-md border border-emerald-500/30 bg-emerald-500/10 px-3 text-xs font-medium text-emerald-300">
-              <span className="h-2.5 w-2.5 rounded-full bg-emerald-400 tactical-pulse" aria-hidden="true" />
-              Live API
+            <span className="inline-flex h-8 shrink-0 items-center gap-1.5 rounded-full border border-green-500/25 bg-green-500/8 px-2.5 text-[11px] font-medium text-green-300">
+              <span className="h-1.5 w-1.5 rounded-full bg-green-400" aria-hidden="true" />
+              Swarm Active
             </span>
           </div>
 
-          <nav className="flex min-w-0 gap-2 overflow-x-auto" aria-label="Quick filters">
+          <nav className="hidden min-w-0 gap-1 lg:flex" aria-label="Quick filters">
             {quickFilters.map((filter) => (
               <button
                 key={filter}
                 type="button"
                 onClick={() => setQuickFilter(filter)}
-                className={`tactical-button h-11 shrink-0 rounded-md border px-3 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background ${
+                className={`h-8 shrink-0 rounded-md border px-2.5 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-background ${
                   quickFilter === filter
                     ? "border-primary bg-primary text-primary-foreground"
                     : "border-border bg-card text-muted-foreground hover:text-foreground"
@@ -336,13 +431,13 @@ export function CommandCenter() {
             ))}
           </nav>
 
-          <div className="flex flex-wrap items-center justify-start gap-2 lg:justify-end">
-            <label className="flex items-center gap-2">
-              <span className="text-xs font-medium text-muted-foreground">Sector</span>
+          <div className="flex items-center justify-end gap-2">
+            <label className="hidden items-center gap-1.5 sm:flex">
+              <span className="text-[11px] font-medium text-muted-foreground">Sector</span>
               <select
                 value={selectedSector}
                 onChange={(event) => updateSector(event.target.value)}
-                className="tactical-control h-11 rounded-md border border-input bg-card px-3 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                className="h-8 rounded-md border border-input bg-card px-2 text-xs text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-background"
               >
                 {sectors.map((sector) => (
                   <option key={sector} value={sector}>{sector}</option>
@@ -351,21 +446,43 @@ export function CommandCenter() {
             </label>
             <button
               type="button"
-              className="tactical-button h-11 rounded-md border border-border bg-card px-3 text-sm font-medium text-foreground transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+              onClick={() => setLowBandwidth((v) => !v)}
+              className={`h-8 rounded-md border px-2.5 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-background ${
+                lowBandwidth ? "border-amber-400 bg-amber-400/20 text-amber-300" : "border-border bg-card text-muted-foreground hover:text-foreground"
+              }`}
             >
-              NGO Ops
+              {lowBandwidth ? "BW: Off" : "BW: On"}
             </button>
             <button
               type="button"
-              className="tactical-button h-11 rounded-md bg-foreground px-3 text-sm font-semibold text-background transition-colors hover:bg-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+              onClick={() => setSimulationMode((v) => !v)}
+              className={`h-8 rounded-md border px-2.5 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-background ${
+                simulationMode ? "border-green-400 bg-green-500/20 text-green-300" : "border-border bg-card text-muted-foreground hover:text-foreground"
+              }`}
             >
-              Add Manual Report
+              {simulationMode ? "Sim: On" : "Sim: Off"}
             </button>
           </div>
         </div>
-      </header>
+        <nav className="flex gap-1 overflow-x-auto border-t border-border px-4 py-1.5 lg:hidden" aria-label="Quick filters">
+          {quickFilters.map((filter) => (
+            <button
+              key={filter}
+              type="button"
+              onClick={() => setQuickFilter(filter)}
+              className={`h-7 shrink-0 rounded-md border px-2 text-[11px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-background ${
+                quickFilter === filter
+                  ? "border-primary bg-primary text-primary-foreground"
+                  : "border-border bg-card text-muted-foreground"
+              }`}
+            >
+              {filter}
+            </button>
+          ))}
+        </nav>
+      </motion.header>
 
-      <section className="grid h-[calc(100vh-65px)] grid-cols-1 overflow-hidden lg:grid-cols-[360px_minmax(0,1fr)]">
+      <section className="flex h-[calc(100vh-3.5rem)] overflow-hidden lg:h-[calc(100vh-3.5rem)]">
         <PrioritySidebar
           alerts={mergedAlerts}
           loading={loading}
@@ -376,28 +493,7 @@ export function CommandCenter() {
           timeAgo={timeAgo}
         />
 
-        <div className="relative min-h-0 bg-black">
-          <div className="hud-controls absolute left-4 top-4 z-10 flex flex-wrap gap-2">
-            <button
-              type="button"
-              onClick={() => setLowBandwidth((value) => !value)}
-              className={`tactical-button h-11 rounded-md border px-3 text-sm font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background ${
-                lowBandwidth ? "border-amber-400 bg-amber-400 text-black" : "border-border bg-card/95 text-foreground"
-              }`}
-            >
-              Low-Bandwidth
-            </button>
-            <button
-              type="button"
-              onClick={() => setSimulationMode((value) => !value)}
-              className={`tactical-button h-11 rounded-md border px-3 text-sm font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background ${
-                simulationMode ? "border-red-400 bg-red-500 text-white" : "border-border bg-card/95 text-foreground"
-              }`}
-            >
-              Simulation Mode
-            </button>
-          </div>
-
+        <div className="relative flex min-h-0 flex-1 flex-col bg-black">
           <MapHeatmap
             points={mergedPoints}
             alerts={mergedAlerts}
@@ -406,119 +502,239 @@ export function CommandCenter() {
             onSelectAlert={setSelectedAlertId}
           />
 
-          <div className="pointer-events-none absolute bottom-4 left-4 right-4 z-10 hidden md:block">
-            <div className="inline-flex items-center gap-4 rounded-lg border border-border bg-card/95 px-4 py-2 text-sm">
-              <span className="tabular-nums font-semibold">{mergedAlerts.length} <span className="font-normal text-muted-foreground">alerts</span></span>
-              <span aria-hidden="true" className="text-border">|</span>
-              <span className="tabular-nums font-semibold text-red-300">{criticalCount} <span className="font-normal text-red-200/70">critical</span></span>
-              <span aria-hidden="true" className="text-border">|</span>
-              <span className="tabular-nums font-semibold text-emerald-300">${Math.round(totalDeficit / 1000)}k <span className="font-normal text-emerald-200/70">deficit</span></span>
+          {/* Inject + Stats Bar */}
+          <motion.div
+            custom={0}
+            variants={statBarVariants}
+            initial="hidden"
+            animate="visible"
+            className="pointer-events-auto absolute bottom-4 left-4 right-4 z-10"
+          >
+            <div className="flex items-center gap-3">
+              <div className="flex-1 inline-flex items-center gap-3 rounded-lg border border-border bg-card/90 px-3.5 py-1.5 text-xs backdrop-blur-sm">
+                <span className="tabular-nums font-semibold">{mergedAlerts.length} <span className="font-normal text-muted-foreground">alerts</span></span>
+                <span aria-hidden="true" className="h-3 w-px bg-border" />
+                <span className="tabular-nums font-semibold text-red-300">{criticalCount} <span className="font-normal text-red-200/70">critical</span></span>
+                <span aria-hidden="true" className="h-3 w-px bg-border" />
+                <span className="tabular-nums font-semibold text-amber-300">${Math.round(totalDeficit / 1000)}k <span className="font-normal text-amber-200/70">deficit</span></span>
+              </div>
+
+              {/* Quick Inject */}
+              <div className="flex items-center gap-1 rounded-lg border border-border bg-card/90 px-2 py-1 backdrop-blur-sm">
+                <input
+                  value={injectText}
+                  onChange={(e) => setInjectText(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && injectIncident()}
+                  placeholder="Inject disaster report…"
+                  className="w-40 bg-transparent text-[11px] text-foreground placeholder:text-muted-foreground focus:outline-none sm:w-56"
+                />
+                <button
+                  onClick={injectIncident}
+                  disabled={injecting || !injectText.trim()}
+                  className="shrink-0 rounded bg-primary/90 px-2 py-0.5 text-[10px] font-semibold text-primary-foreground hover:bg-primary disabled:opacity-40"
+                >
+                  {injecting ? "…" : "Inject"}
+                </button>
+              </div>
             </div>
-          </div>
+          </motion.div>
         </div>
+
+        {/* Right Side Panel — Swarm / Audit */}
+        <AnimatePresence>
+          {activeRightPanel && activeClusterId && (
+            <motion.aside
+              key={`right-panel-${activeRightPanel}`}
+              variants={panelVariants}
+              initial="hidden"
+              animate="visible"
+              exit="exit"
+              className="fixed inset-y-0 right-0 z-40 w-full max-w-sm flex flex-col border-l border-border bg-card shadow-2xl sm:top-0 sm:h-full"
+            >
+              {activeRightPanel === "swarm" && (
+                <SwarmPanel
+                  clusterId={activeClusterId}
+                  onDisburse={handleDisburse}
+                  onClose={() => { setActiveRightPanel(null); fetchData(); }}
+                />
+              )}
+              {activeRightPanel === "audit" && (
+                <AuditView
+                  clusterId={activeClusterId}
+                  onClose={() => setActiveRightPanel(null)}
+                />
+              )}
+            </motion.aside>
+          )}
+        </AnimatePresence>
       </section>
 
-      {selectedAlert && (
-        <aside className="detail-panel fixed inset-y-0 right-0 z-40 flex w-full max-w-md flex-col border-l border-border bg-card shadow-2xl sm:top-16 sm:h-[calc(100vh-4rem)]" aria-labelledby="detail-title">
-          <div className="flex items-start justify-between gap-4 border-b border-border p-4">
-            <div>
-              <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">Action Layer</p>
-              <h2 id="detail-title" className="mt-1 text-xl font-semibold">{inferIncidentType(selectedAlert)} Response</h2>
-            </div>
-            <button
-              type="button"
-              onClick={() => setSelectedAlertId(null)}
-              className="h-11 min-w-11 rounded-md border border-border text-xl text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-              aria-label="Close detail panel"
-            >
-              ×
-            </button>
-          </div>
-
-          <div className="min-h-0 flex-1 overflow-y-auto p-4">
-            <div className="detail-card rounded-lg border border-border bg-background p-4">
-              <p className="text-sm font-semibold">AI Summary</p>
-              <ul className="mt-3 space-y-2 text-sm text-muted-foreground">
-                <li>• {selectedAlert.rawText}</li>
-                <li>• Urgency {selectedAlert.urgencyScore} is elevated by a ${Math.round((fundingTarget(selectedAlert) - fundingRaised(selectedAlert)) / 1000)}k response deficit and field access risk.</li>
-              </ul>
-            </div>
-
-            <div className="detail-card mt-4 rounded-lg border border-border bg-background p-4">
-              <p className="text-sm font-semibold">Landmark Verification</p>
-              <div className="mt-3 grid gap-2 text-sm text-muted-foreground">
-                <span>Maiduguri Market perimeter</span>
-                <span>State Specialist Hospital route</span>
-                <span>Central Primary School shelter zone</span>
-              </div>
-            </div>
-
-            <div className="detail-card mt-4 rounded-lg border border-border bg-background p-4">
-              <p className="text-sm font-semibold">Funding Status</p>
-              <div className="mt-3 h-3 overflow-hidden rounded-full bg-muted">
-                <div className="funding-fill h-full rounded-full bg-emerald-500" style={{ width: `${Math.round((fundingRaised(selectedAlert) / fundingTarget(selectedAlert)) * 100)}%` }} />
-              </div>
-              <p className="mt-2 text-sm text-muted-foreground">
-                ${fundingRaised(selectedAlert).toLocaleString()} raised of ${fundingTarget(selectedAlert).toLocaleString()}
-              </p>
-            </div>
-
-            <button
-              type="button"
-              onClick={verifySelectedAlert}
-              className="tactical-button mt-4 h-11 w-full rounded-md border border-border bg-background text-sm font-semibold text-foreground hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-            >
-              {selectedAlert.verified ? "Verified" : "Verify Ground Truth"}
-            </button>
-          </div>
-
-          <div className="border-t border-border p-4">
-            <button
-              type="button"
-              onClick={() => setFundingOpen(true)}
-              className="fund-button h-12 w-full rounded-md bg-emerald-500 px-4 text-sm font-bold text-black transition-colors hover:bg-emerald-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-            >
-              FUND EMERGENCY RESPONSE
-            </button>
-          </div>
-        </aside>
-      )}
-
-      {fundingOpen && selectedAlert && (
-        <div className="modal-backdrop fixed inset-0 z-50 grid place-items-center bg-black/70 p-4" role="dialog" aria-modal="true" aria-labelledby="fund-title">
-          <div className="modal-panel w-full max-w-sm rounded-lg border border-border bg-card p-5 shadow-2xl">
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <h2 id="fund-title" className="text-lg font-semibold">Secure Payout Route</h2>
-                <p className="mt-1 text-sm text-muted-foreground">NGO registered payout URL and QR handoff.</p>
+      {/* Left Detail Panel for selected alert */}
+      <AnimatePresence>
+        {selectedAlert && !activeRightPanel && (
+          <motion.aside
+            key="detail-panel"
+            variants={panelVariants}
+            initial="hidden"
+            animate="visible"
+            exit="exit"
+            className="fixed inset-y-0 right-0 z-40 flex w-full max-w-sm flex-col border-l border-border bg-card shadow-2xl sm:top-0 sm:h-full"
+            aria-labelledby="detail-title"
+          >
+            <div className="flex items-start justify-between gap-4 border-b border-border p-4">
+              <div className="min-w-0">
+                <p className="text-[11px] uppercase tracking-[0.15em] text-muted-foreground">Incident</p>
+                <h2 id="detail-title" className="mt-0.5 truncate text-base font-semibold">{inferIncidentType(selectedAlert)}</h2>
               </div>
               <button
                 type="button"
-                onClick={() => setFundingOpen(false)}
-                className="h-11 min-w-11 rounded-md border border-border text-xl text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-                aria-label="Close funding modal"
+                onClick={() => setSelectedAlertId(null)}
+                className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-border text-sm text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-background"
+                aria-label="Close detail panel"
               >
                 ×
               </button>
             </div>
-            <div className="qr-tile mx-auto mt-5 grid h-40 w-40 place-items-center rounded-md border border-foreground bg-white text-center text-xs font-bold text-black">
-              QR<br />AegisAI<br />{selectedAlert.id.slice(0, 8)}
-            </div>
-            <a
-              href={`https://payments.example.org/aegisai/${selectedAlert.id}`}
-              className="tactical-button mt-5 flex h-11 items-center justify-center rounded-md bg-foreground px-3 text-sm font-semibold text-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-            >
-              Open Payout URL
-            </a>
-          </div>
-        </div>
-      )}
 
-      {!online && (
-        <div className="offline-banner fixed bottom-0 left-0 right-0 z-50 border-t border-amber-400/50 bg-amber-500 px-4 py-3 text-center text-sm font-semibold text-black">
-          Offline mode active. Map is using cached tiles and queued operator actions.
-        </div>
-      )}
+            <div className="min-h-0 flex-1 space-y-3 overflow-y-auto p-4">
+              <motion.div
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0, transition: { delay: 0.08 } }}
+                className="rounded-lg border border-border bg-background p-3"
+              >
+                <p className="text-xs font-semibold text-foreground">Summary</p>
+                <p className="mt-1.5 text-xs leading-5 text-muted-foreground">
+                  {selectedAlert.rawText}
+                </p>
+                <p className="mt-1.5 text-xs text-muted-foreground">
+                  Urgency {selectedAlert.urgencyScore} · ${Math.round((fundingTarget(selectedAlert) - fundingRaised(selectedAlert)) / 1000)}k deficit
+                </p>
+              </motion.div>
+
+              <motion.div
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0, transition: { delay: 0.14 } }}
+                className="rounded-lg border border-border bg-background p-3"
+              >
+                <p className="text-xs font-semibold text-foreground">Landmarks</p>
+                <ul className="mt-1.5 space-y-1">
+                  {["Maiduguri Market perimeter", "State Specialist Hospital", "Central Primary School shelter"].map((lm) => (
+                    <li key={lm} className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <span className="h-1 w-1 rounded-full bg-border" />
+                      {lm}
+                    </li>
+                  ))}
+                </ul>
+              </motion.div>
+
+              <motion.div
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0, transition: { delay: 0.2 } }}
+                className="rounded-lg border border-border bg-background p-3"
+              >
+                <p className="text-xs font-semibold text-foreground">Funding</p>
+                <div className="mt-2 h-2 overflow-hidden rounded-full bg-muted">
+                  <motion.div
+                    className="h-full rounded-full bg-amber-500"
+                    initial={{ scaleX: 0 }}
+                    animate={{ scaleX: fundingRaised(selectedAlert) / fundingTarget(selectedAlert) }}
+                    transition={{ type: "spring", damping: 20, stiffness: 120 }}
+                    style={{ transformOrigin: "left" }}
+                  />
+                </div>
+                <p className="mt-1.5 text-xs text-muted-foreground">
+                  ${fundingRaised(selectedAlert).toLocaleString()} of ${fundingTarget(selectedAlert).toLocaleString()}
+                </p>
+              </motion.div>
+
+              {/* Swarm + Audit buttons */}
+              <div className="grid grid-cols-2 gap-2">
+                <motion.button
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0, transition: { delay: 0.24 } }}
+                  whileHover={{ scale: 1.01 }}
+                  whileTap={{ scale: 0.98 }}
+                  type="button"
+                  onClick={() => openSwarmForAlert(selectedAlert)}
+                  className="rounded-md border border-green-500/30 bg-green-500/10 px-3 py-2 text-xs font-semibold text-green-300 hover:bg-green-500/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                >
+                  🐝 Run Swarm
+                </motion.button>
+                <motion.button
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0, transition: { delay: 0.28 } }}
+                  whileHover={{ scale: 1.01 }}
+                  whileTap={{ scale: 0.98 }}
+                  type="button"
+                  onClick={() => openAuditForAlert(selectedAlert)}
+                  className="rounded-md border border-border bg-background px-3 py-2 text-xs font-semibold text-foreground hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                >
+                  📋 Audit Trail
+                </motion.button>
+              </div>
+            </div>
+          </motion.aside>
+        )}
+      </AnimatePresence>
+
+      {/* Disbursement Toast */}
+      <AnimatePresence>
+        {disburseResult && (
+          <motion.div
+            key="disburse-toast"
+            initial={{ y: "100%", opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: "100%", opacity: 0 }}
+            transition={{ type: "spring", damping: 24, stiffness: 260 }}
+            className="fixed bottom-0 left-0 right-0 z-50 border-t border-green-500/50 bg-green-500/10 backdrop-blur-xl p-3"
+          >
+            <div className="max-w-2xl mx-auto flex items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <span className="text-green-400 text-lg">✓</span>
+                <div>
+                  <p className="text-xs font-semibold text-green-300">Disbursement Confirmed</p>
+                  <p className="text-[10px] text-muted-foreground">
+                    ${disburseResult.amountUSD.toLocaleString()} USDC · Tx: <span className="font-mono">{disburseResult.txSignature.slice(0, 16)}…</span>
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                {disburseResult.explorerUrl && (
+                  <a
+                    href={disburseResult.explorerUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="rounded-md bg-green-500/20 px-3 py-1.5 text-[11px] font-medium text-green-300 hover:bg-green-500/30"
+                  >
+                    Explorer →
+                  </a>
+                )}
+                <button
+                  onClick={() => setDisburseResult(null)}
+                  className="rounded-md border border-border px-2 py-1.5 text-[11px] text-muted-foreground hover:text-foreground"
+                >
+                  ×
+                </button>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {!online && (
+          <motion.div
+            key="offline-banner"
+            initial={{ y: "100%" }}
+            animate={{ y: 0 }}
+            exit={{ y: "100%" }}
+            transition={{ type: "spring", damping: 24, stiffness: 260 }}
+            className="fixed bottom-0 left-0 right-0 z-50 border-t border-amber-400/50 bg-amber-500 px-4 py-2.5 text-center text-xs font-semibold text-black"
+          >
+            Offline mode — cached tiles and queued actions
+          </motion.div>
+        )}
+      </AnimatePresence>
     </main>
   );
 }

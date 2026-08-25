@@ -1,17 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { pool } from "@/lib/db";
-import { runSwarmQuorum } from "@/lib/swarm";
+import { runSwarmQuorum, type SwarmInput } from "@/lib/swarm";
 
 export const dynamic = "force-dynamic";
 
-function haversine(lat1: number, lon1: number, lat2: number, lon2: number): number {
-  const R = 6371000;
-  const toRad = (d: number) => (d * Math.PI) / 180;
-  const dLat = toRad(lat2 - lat1);
-  const dLon = toRad(lon2 - lon1);
-  const a = Math.sin(dLat / 2) ** 2 + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2;
-  return 2 * R * Math.asin(Math.sqrt(a));
-}
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type Row = Record<string, any>;
 
 export async function POST(request: NextRequest) {
   try {
@@ -19,7 +13,7 @@ export async function POST(request: NextRequest) {
     const { clusterId, raw_text, lat, lon } = body as { clusterId?: string; raw_text?: string; lat?: number; lon?: number };
 
     let cid = clusterId;
-    let cluster: any = null;
+    let cluster: Row | null = null;
 
     if (cid) {
       const res = await pool.query(`SELECT id, lat, lon, "radius_m", report_count, sources, total_financial_target, status, tier FROM "Incident_Clusters" WHERE id=$1`, [cid]);
@@ -67,7 +61,7 @@ export async function POST(request: NextRequest) {
       }
     } catch {}
 
-    const inp = {
+    const inp: SwarmInput = {
       clusterId: cid as string,
       lat: Number(cluster.lat),
       lon: Number(cluster.lon),
@@ -77,15 +71,15 @@ export async function POST(request: NextRequest) {
       rawTexts,
       urgencyScores,
       totalFinancialTarget: Number(cluster.total_financial_target ?? 0),
-      vault,
     };
 
-    const quorum = await runSwarmQuorum(inp as any);
+    const quorum = await runSwarmQuorum({ ...inp, vault });
 
     // Persist votes (idempotent)
     const existingVotes = await pool.query(`SELECT id FROM "Agent_Votes" WHERE cluster_id=$1`, [cid]);
     if (existingVotes.rows.length === 0) {
       for (const v of quorum.votes) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         await pool.query(`INSERT INTO "Agent_Votes" (id, cluster_id, agent_type, vote, score, reasoning, signature, tool_proofs) VALUES (gen_random_uuid(), $1,$2,$3,$4,$5,$6,$7::jsonb)`, [cid, v.agentType, v.vote, v.score, v.reasoning, v.signature, JSON.stringify(v.toolProofs)]);
       }
     }
