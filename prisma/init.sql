@@ -26,4 +26,19 @@ BEGIN
     CREATE INDEX IF NOT EXISTS quarantine_alerts_created_at_idx
       ON "Quarantine_Alerts" ("created_at");
   END IF;
+
+  IF to_regclass('public."Incident_Clusters"') IS NOT NULL THEN
+    CREATE INDEX IF NOT EXISTS incident_clusters_status_idx ON "Incident_Clusters" ("status");
+    CREATE INDEX IF NOT EXISTS incident_clusters_created_at_idx ON "Incident_Clusters" ("created_at");
+  END IF;
+
+  IF to_regclass('public."Agent_Votes"') IS NOT NULL THEN
+    CREATE INDEX IF NOT EXISTS agent_votes_cluster_idx ON "Agent_Votes" ("cluster_id");
+    CREATE INDEX IF NOT EXISTS agent_votes_agent_type_idx ON "Agent_Votes" ("agent_type");
+  END IF;
+
+  IF to_regclass('public."Disbursement_Txs"') IS NOT NULL THEN
+    CREATE INDEX IF NOT EXISTS disbursement_txs_cluster_idx ON "Disbursement_Txs" ("cluster_id");
+    CREATE INDEX IF NOT EXISTS disbursement_txs_sig_idx ON "Disbursement_Txs" ("tx_signature");
+  END IF;
 END $$;

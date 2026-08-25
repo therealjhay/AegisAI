@@ -30,7 +30,11 @@ model Alert {
   verifiedStatus Boolean  @default(false) @map("verified_status")
   /// UTC ingest time of the alert record.
   timestamp      DateTime @default(now()) @db.Timestamptz(6)
+  /// Link to incident cluster (Pillar 1 grouping).
+  clusterId      String?  @map("cluster_id")
+  cluster        IncidentCluster? @relation(fields: [clusterId], references: [id])
 
+  @@index([clusterId])
   @@map("Alerts")
 }
 
@@ -41,8 +45,14 @@ model NGOUser {
   organizationName String @map("organization_name") @db.VarChar(255)
   /// Specialized response sector (e.g., "Emergency Medicine", "Tactical Logistics").
   sector           String @db.VarChar(100)
-  /// Secure payout URL or direct checkout link for funding routing.
+  /// Secure payout URL or direct checkout link for funding routing (legacy).
   payoutUrl        String @map("payout_url") @db.Text
+  /// On-chain wallet address for parametric disbursement (Idea 3 Pillar 3).
+  walletAddress    String? @map("wallet_address") @db.VarChar(128)
+  /// Whether wallet/merchant is verified for auto-disbursement.
+  isVerified       Boolean @default(false) @map("is_verified")
+  /// Verified merchant ID if applicable.
+  merchantId       String? @map("merchant_id") @db.VarChar(128)
   /// Human-readable active operating region.
   activeRegion     String @map("active_region") @db.Text
 
@@ -62,4 +72,109 @@ model QuarantineAlert {
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
 
   @@map("Quarantine_Alerts")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Idea 3 Pillars — Parametric Dispatcher Extensions
+// ─────────────────────────────────────────────────────────────────────────────
+
+model IncidentCluster {
+  /// CUID cluster identifier (ST_ClusterDBSCAN grouping).
+  id                   String   @id @default(cuid())
+  /// Centroid latitude.
+  lat                  Float
+  /// Centroid longitude.
+  lon                  Float
+  /// Cluster radius in meters.
+  radiusM              Float    @map("radius_m")
+  /// Number of raw reports grouped.
+  reportCount          Int      @map("report_count")
+  /// Source labels grouped (JSON array).
+  sources              Json     @default("[]")
+  /// Lifecycle status: pending | verifying | verified | disbursed | audit_required | quarantined
+  status               String   @default("pending") @db.VarChar(32)
+  /// Severity tier 1-4 (from Loss Evaluator).
+  tier                 Int?     @db.SmallInt
+  /// Aggregated financial need (USD) for cluster.
+  totalFinancialTarget Float    @default(0) @map("total_financial_target") @db.DoublePrecision
+  /// Quorum hash (hash of 3 signatures) when verified.
+  quorumHash           String?  @map("quorum_hash") @db.Text
+  /// Human-readable region/landmark.
+  region               String?  @db.Text
+  createdAt            DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt            DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  alerts        Alert[]
+  votes         AgentVote[]
+  disbursements DisbursementTx[]
+
+  @@index([status])
+  @@map("Incident_Clusters")
+}
+
+model AgentVote {
+  /// CUID vote identifier.
+  id         String   @id @default(cuid())
+  clusterId  String   @map("cluster_id")
+  cluster    IncidentCluster @relation(fields: [clusterId], references: [id], onDelete: Cascade)
+  /// Agent type: triangulator | fact_checker | triage_evaluator | risk_governor
+  agentType  String   @map("agent_type") @db.VarChar(32)
+  /// Vote: yes | no | abstain
+  vote       String   @db.VarChar(16)
+  /// Confidence score 0..1.
+  score      Float    @db.Real
+  /// Reasoning text.
+  reasoning  String   @db.Text
+  /// Ed25519 signature hex (mock chain signature for audit).
+  signature  String   @db.Text
+  /// Tool proof hashes / raw outputs (JSON).
+  toolProofs Json?    @map("tool_proofs")
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@index([clusterId])
+  @@index([agentType])
+  @@map("Agent_Votes")
+}
+
+model DisbursementTx {
+  /// CUID disbursement identifier.
+  id              String   @id @default(cuid())
+  clusterId       String   @map("cluster_id")
+  cluster         IncidentCluster @relation(fields: [clusterId], references: [id], onDelete: Cascade)
+  /// Amount disbursed in USD.
+  amountUSD       Float    @map("amount_usd") @db.DoublePrecision
+  /// Recipient wallet address (NGO).
+  recipientWallet String   @map("recipient_wallet") @db.VarChar(128)
+  /// Recipient org name (denormalized).
+  recipientOrg    String?  @map("recipient_org") @db.VarChar(255)
+  /// Hash of quorum signatures authorizing this tx.
+  quorumHash      String   @map("quorum_hash") @db.Text
+  /// Mock/real chain transaction signature (sha256 hex or Solana sig).
+  txSignature     String   @map("tx_signature") @db.Text
+  /// Explorer URL (mock or Solana explorer).
+  explorerUrl     String?  @map("explorer_url") @db.Text
+  /// Tier that determined amount.
+  tier            Int?     @db.SmallInt
+  /// Status: pending | confirmed | failed
+  status          String   @default("confirmed") @db.VarChar(16)
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@index([clusterId])
+  @@index([txSignature])
+  @@map("Disbursement_Txs")
+}
+
+model VaultState {
+  /// Singleton id.
+  id                String   @id @default("singleton")
+  /// Reserve in USD (mock USDC).
+  reserveUSD        Float    @default(1000000) @map("reserve_usd") @db.DoublePrecision
+  /// Daily disbursement cap.
+  dailyLimitUSD     Float    @default(100000) @map("daily_limit_usd") @db.DoublePrecision
+  /// Amount disbursed today.
+  disbursedTodayUSD Float    @default(0) @map("disbursed_today_usd") @db.DoublePrecision
+  lastResetAt       DateTime @default(now()) @map("last_reset_at") @db.Timestamptz(6)
+  updatedAt         DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@map("Vault_State")
 }
