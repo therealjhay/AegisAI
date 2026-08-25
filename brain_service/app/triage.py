@@ -131,36 +131,37 @@ def estimate_funding_need(text: str, urgency: int) -> float:
 
 
 @dataclass
-class OpenAILLMClient:
-    model: str = "gpt-4o-mini"
+class GeminiLLMClient:
+    model_name: str = "gemini-2.0-flash"
 
     def triage(self, raw_text: str) -> dict[str, Any]:
-        from openai import OpenAI
+        import google.generativeai as genai
+        import json
 
-        client = OpenAI(api_key=os.environ["OPENAI_API_KEY"])
-        completion = client.chat.completions.create(
-            model=self.model,
-            response_format={"type": "json_object"},
-            temperature=0,
-            messages=[
-                {
-                    "role": "system",
-                    "content": (
-                        "You are a tactical crisis triage agent for NGOs. "
-                        "Analyze the text and return JSON with keys: "
-                        "incident_type (must be 'Natural_Disaster' or 'Terrorism_Attack'), "
-                        "disaster_type (string, e.g. 'Flash Flood', 'Active Shooter', 'IED Blast'), "
-                        "urgency_score (1-5 integer based on immediate threat to life), "
-                        "financial_target_usd (float, estimate based on: $500 per displaced person, $50k per destroyed building, $10k per casualty for immediate medical/logistics), "
-                        "location_mentions (string array)."
-                    ),
-                },
-                {"role": "user", "content": raw_text},
-            ],
+        genai.configure(api_key=os.environ["GOOGLE_API_KEY"])
+        model = genai.GenerativeModel(
+            model_name=self.model_name,
+            generation_config={
+                "response_mime_type": "application/json",
+            }
         )
-        content = completion.choices[0].message.content
+        
+        prompt = (
+            "You are a tactical crisis triage agent for NGOs. "
+            "Analyze the text and return JSON with keys: "
+            "incident_type (must be 'Natural_Disaster' or 'Terrorism_Attack'), "
+            "disaster_type (string, e.g. 'Flash Flood', 'Active Shooter', 'IED Blast'), "
+            "urgency_score (1-5 integer based on immediate threat to life), "
+            "financial_target_usd (float, estimate based on: $500 per displaced person, $50k per destroyed building, $10k per casualty for immediate medical/logistics), "
+            "location_mentions (string array).\n\n"
+            f"TEXT TO ANALYZE: {raw_text}"
+        )
+
+        response = model.generate_content(prompt)
+        content = response.text
         if not content:
-            raise ValueError("LLM returned empty response content")
+            raise ValueError("Gemini returned empty response content")
+        
         parsed = json.loads(content)
         parsed["urgency_score"] = max(1, min(5, int(parsed["urgency_score"])))
         parsed["financial_target_usd"] = float(parsed.get("financial_target_usd", 0))
@@ -182,16 +183,16 @@ class TriageService:
         if self.llm_client is not None:
             result = self.llm_client.triage(raw_text)
             return {
-                "incident_type": result["incident_type"],
-                "disaster_type": result["disaster_type"],
-                "urgency_score": max(1, min(5, int(result["urgency_score"]))),
-                "financial_target_usd": result["financial_target_usd"],
+                "incident_type": result.get("incident_type", "Natural_Disaster"),
+                "disaster_type": result.get("disaster_type", "Unknown"),
+                "urgency_score": max(1, min(5, int(result.get("urgency_score", 1)))),
+                "financial_target_usd": float(result.get("financial_target_usd", 0)),
                 "location_mentions": list(result.get("location_mentions", [])),
                 "classification_source": "llm",
             }
 
-        if os.environ.get("OPENAI_API_KEY"):
-            llm_result = OpenAILLMClient().triage(raw_text)
+        if os.environ.get("GOOGLE_API_KEY"):
+            llm_result = GeminiLLMClient().triage(raw_text)
             return {
                 "incident_type": llm_result["incident_type"],
                 "disaster_type": llm_result["disaster_type"],

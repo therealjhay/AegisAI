@@ -30,9 +30,10 @@ def test_triage_endpoint_returns_structured_json() -> None:
     )
 
     assert response.status_code == 200
-    assert response.json() == {
-        "disaster_type": "Flood",
-        "urgency_score": 5,
-        "location_mentions": ["Old Bridge", "Mercy Hospital"],
-        "classification_source": "llm",
-    }
+    body = response.json()
+    assert body["disaster_type"] == "Flood"
+    assert body["urgency_score"] == 5
+    assert body["location_mentions"] == ["Old Bridge", "Mercy Hospital"]
+    assert body["classification_source"] == "llm"
+    assert body["incident_type"] == "Natural_Disaster"
+    assert "financial_target_usd" in body
