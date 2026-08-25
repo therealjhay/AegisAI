@@ -27,7 +27,7 @@ export async function POST(request: NextRequest) {
         `INSERT INTO "Incident_Clusters" (id, lat, lon, "radius_m", report_count, sources, status, total_financial_target, region) VALUES (gen_random_uuid(), $1,$2,120,1,'[\"demo_inject\"]'::jsonb,'pending',$3,$4) RETURNING id, lat, lon, "radius_m", report_count, sources, total_financial_target, status, tier`,
         [ll.lat, ll.lon, urgency * 4000, `${ll.lat.toFixed(2)},${ll.lon.toFixed(2)} synthetic`]
       );
-      cluster = ins.rows[0];
+      cluster = ins.rows[0] as Row;
       cid = cluster.id;
       // Also insert a shadow alert for heatmap
       await pool.query(
@@ -38,6 +38,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Provide clusterId or raw_text" }, { status: 400 });
     }
 
+    if (!cluster) return NextResponse.json({ error: "Cluster resolution failed" }, { status: 500 });
+
     // Gather raw texts + urgencies for cluster
     const alertsRes = await pool.query(`SELECT raw_text, urgency_score, source FROM "Alerts" WHERE cluster_id=$1 ORDER BY timestamp DESC LIMIT 10`, [cid]);
     const rawTexts: string[] = alertsRes.rows.map((r) => r.raw_text);
@@ -46,7 +48,7 @@ export async function POST(request: NextRequest) {
     if (urgencyScores.length === 0) urgencyScores.push(3);
     const sourcesRaw: string[] = alertsRes.rows.map((r) => r.source);
     const clusterSources: string[] = cluster.sources ? (Array.isArray(cluster.sources) ? cluster.sources : JSON.parse(cluster.sources)) : sourcesRaw;
-    const uniqSources = [...new Set(clusterSources.length ? clusterSources : sourcesRaw)];
+    const uniqSources = Array.from(new Set(clusterSources.length ? clusterSources : sourcesRaw));
     const sources = uniqSources.length ? uniqSources : ["demo_inject"];
 
     // Vault snapshot
