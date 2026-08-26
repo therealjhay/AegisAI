@@ -2,6 +2,8 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import Link from "next/link";
+import Image from "next/image";
 import { AnimatePresence, motion } from "framer-motion";
 
 import { MapHeatmap } from "@/components/MapHeatmap";
@@ -404,10 +406,28 @@ export function CommandCenter() {
       >
         <div className="flex min-h-14 items-center gap-3 px-4 py-2 lg:grid lg:grid-cols-[280px_minmax(0,1fr)_280px] lg:px-6">
           <div className="flex items-center gap-3">
-            <div className="min-w-0">
-              <h1 className="text-base font-semibold tracking-tight text-foreground">AegisAI</h1>
-              <p className="text-[11px] uppercase tracking-[0.15em] text-muted-foreground">Autonomous Dispatcher</p>
-            </div>
+            <Link
+              href="/"
+              aria-label="AegisAI — back to field manual"
+              className="group flex min-w-0 items-center gap-2.5 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+            >
+              <Image
+                src="/logo-mark.png"
+                alt=""
+                width={28}
+                height={28}
+                className="h-7 w-7 shrink-0"
+                priority
+              />
+              <span className="min-w-0">
+                <h1 className="text-base font-semibold tracking-tight text-foreground transition-colors group-hover:text-signal-bright">
+                  AegisAI
+                </h1>
+                <p className="text-[11px] uppercase tracking-[0.15em] text-muted-foreground">
+                  Autonomous Dispatcher
+                </p>
+              </span>
+            </Link>
             <span className="inline-flex h-8 shrink-0 items-center gap-1.5 rounded-full border border-green-500/25 bg-green-500/8 px-2.5 text-[11px] font-medium text-green-300">
               <span className="h-1.5 w-1.5 rounded-full bg-green-400" aria-hidden="true" />
               Swarm Active
@@ -432,6 +452,12 @@ export function CommandCenter() {
           </nav>
 
           <div className="flex items-center justify-end gap-2">
+            <Link
+              href="/"
+              className="mono-label hidden h-8 items-center rounded-md border border-border bg-card px-2.5 text-[10px] text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-background sm:inline-flex"
+            >
+              ← Field Manual
+            </Link>
             <label className="hidden items-center gap-1.5 sm:flex">
               <span className="text-[11px] font-medium text-muted-foreground">Sector</span>
               <select
