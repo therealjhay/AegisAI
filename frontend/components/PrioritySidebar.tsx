@@ -3,6 +3,7 @@
 import { AnimatePresence, motion } from "framer-motion";
 
 import type { PriorityAlert } from "@/components/CommandCenter";
+import { IconRefresh } from "@/components/icons";
 
 type PrioritySidebarProps = {
   alerts: PriorityAlert[];
@@ -23,9 +24,9 @@ function incidentLabel(alert: PriorityAlert): string {
 
 function badgeColor(alert: PriorityAlert): string {
   const label = incidentLabel(alert);
-  if (alert.urgencyScore >= 5 || label === "Terrorism") return "bg-red-500/10 text-red-400 border-red-500/30";
-  if (label === "Flood") return "bg-sky-500/10 text-sky-400 border-sky-500/30";
-  return "bg-primary/10 text-primary border-primary/30";
+  if (alert.urgencyScore >= 5 || label === "Terrorism") return "border-red-500/40 text-red-400";
+  if (label === "Flood") return "border-sky-500/40 text-sky-400";
+  return "border-signal-bright/40 text-signal-bright";
 }
 
 function headline(alert: PriorityAlert): string {
@@ -51,13 +52,24 @@ function progress(alert: PriorityAlert): number {
   return Math.round((raised(alert) / target(alert)) * 100);
 }
 
+function urgencyTone(score: number): string {
+  if (score >= 5) return "text-red-400";
+  if (score >= 4) return "text-signal-bright";
+  return "text-muted-foreground";
+}
+
+function fundingTone(pct: number): string {
+  if (pct >= 80) return "bg-green-400";
+  if (pct >= 40) return "bg-signal-bright";
+  return "bg-signal-deep";
+}
+
 const variants = {
-  hidden: { opacity: 0, y: 12, scale: 0.97 },
+  hidden: { opacity: 0, y: 10 },
   visible: (i: number) => ({
     opacity: 1,
     y: 0,
-    scale: 1,
-    transition: { delay: Math.min(i * 0.04, 0.32), type: "spring" as const, stiffness: 280, damping: 24 },
+    transition: { delay: Math.min(i * 0.04, 0.32), duration: 0.28, ease: [0.22, 1, 0.36, 1] as const },
   }),
 };
 
@@ -68,11 +80,14 @@ function Skeleton({ delay }: { delay: number }) {
       initial="hidden"
       animate="visible"
       custom={delay}
-      className="rounded-lg border border-border bg-card p-3"
+      className="border-b border-border px-4 py-4"
     >
-      <div className="h-4 w-24 rounded bg-muted/60 animate-pulse" />
-      <div className="mt-3 h-5 w-full rounded bg-muted/40 animate-pulse" />
-      <div className="mt-4 h-2 w-full rounded bg-muted/40 animate-pulse" />
+      <div className="flex items-center justify-between">
+        <div className="h-3 w-20 bg-muted/60 animate-pulse" />
+        <div className="h-3 w-10 bg-muted/40 animate-pulse" />
+      </div>
+      <div className="mt-3 h-4 w-4/5 bg-muted/50 animate-pulse" />
+      <div className="mt-3 h-1 w-full bg-muted/40 animate-pulse" />
     </motion.div>
   );
 }
@@ -81,7 +96,7 @@ export function PrioritySidebar({ alerts, loading, error, selectedAlertId, onRet
   return (
     <motion.aside
       layout
-      className="relative z-20 flex flex-col overflow-hidden rounded-t-2xl border border-border bg-card shadow-2xl lg:static lg:z-auto lg:max-h-none lg:rounded-none lg:border-r lg:border-t-0 lg:shadow-none"
+      className="relative z-20 flex flex-col overflow-hidden border-b border-border bg-card lg:static lg:z-auto lg:max-h-none lg:border-b-0 lg:border-r"
       aria-labelledby="priority-title"
       initial={false}
     >
@@ -93,7 +108,6 @@ export function PrioritySidebar({ alerts, loading, error, selectedAlertId, onRet
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="space-y-3 p-3"
               aria-live="polite"
               aria-busy="true"
             >
@@ -111,18 +125,18 @@ export function PrioritySidebar({ alerts, loading, error, selectedAlertId, onRet
               initial={{ opacity: 0, y: -8 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0 }}
-              className="m-3 rounded-lg border border-signal-bright/30 bg-signal-bright/5 p-3"
+              className="m-4 border border-signal-bright/30 bg-signal-bright/5 p-3"
             >
-              <p className="text-sm font-medium text-signal-bright">Live stream degraded.</p>
-              <p className="mt-1 text-xs text-signal-bright/70">{error}</p>
+              <p className="mono-label text-[9px] text-signal-bright">Stream degraded</p>
+              <p className="mt-1.5 text-xs text-signal-bright/80">{error}</p>
               {alerts.length === 0 && (
                 <motion.button
                   type="button"
                   onClick={onRetry}
-                  whileTap={{ scale: 0.96 }}
-                  className="mt-3 rounded-md border border-signal-bright/40 px-3 py-2 text-xs font-medium text-signal-bright transition-colors hover:bg-signal-bright/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  whileTap={{ scale: 0.97 }}
+                  className="mono-label mt-3 border border-signal-bright/40 px-3 py-2 text-[10px] text-signal-bright transition-colors hover:bg-signal-bright/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 >
-                  Retry
+                  Retry connection
                 </motion.button>
               )}
             </motion.div>
@@ -133,27 +147,29 @@ export function PrioritySidebar({ alerts, loading, error, selectedAlertId, onRet
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            className="m-3 rounded-lg border border-border bg-background p-4 text-center"
+            className="m-4 border border-border bg-background p-4 text-center"
           >
-            <p className="text-sm font-medium text-foreground">No matching alerts</p>
+            <p className="mono-label text-[9px] text-muted-foreground">Feed clear</p>
+            <p className="mt-2 text-sm font-medium text-foreground">No matching alerts</p>
             <p className="mt-1 text-xs text-muted-foreground">Clear filters or enable simulation mode.</p>
           </motion.div>
         )}
 
         {!loading && !error && alerts.length > 0 && (
-          <div className="flex items-center justify-between border-b border-border px-4 pb-3 pt-3">
+          <div className="flex items-center justify-between border-b border-border px-4 pb-3 pt-3.5">
             <div>
-              <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">Alert Feed</p>
-              <h2 id="priority-title" className="text-sm font-semibold text-foreground">
-                Active Incidents <span className="text-muted-foreground">· {alerts.length}</span>
+              <p className="mono-label text-[9px] text-muted-foreground">Alert Feed</p>
+              <h2 id="priority-title" className="mt-1 text-sm font-semibold tracking-tight text-foreground">
+                Active incidents <span className="font-mono text-xs font-normal text-muted-foreground">· {alerts.length}</span>
               </h2>
             </div>
             <motion.button
               type="button"
               onClick={onRetry}
-              whileTap={{ scale: 0.94 }}
-              className="rounded-md border border-border px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              whileTap={{ scale: 0.96 }}
+              className="mono-label flex h-8 items-center gap-1.5 border border-border px-2.5 text-[10px] text-muted-foreground transition-colors hover:border-foreground/40 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
+              <IconRefresh width={12} height={12} />
               Refresh
             </motion.button>
           </div>
@@ -161,7 +177,7 @@ export function PrioritySidebar({ alerts, loading, error, selectedAlertId, onRet
 
         {!loading && !error && alerts.length > 0 && (
           <motion.ol
-            className="flex-1 space-y-2 overflow-y-auto overscroll-contain p-3 lg:max-h-[calc(100vh-200px)]"
+            className="flex-1 divide-y divide-border overflow-y-auto overscroll-contain lg:max-h-[calc(100vh-200px)]"
             initial={false}
           >
             <AnimatePresence mode="popLayout">
@@ -172,49 +188,40 @@ export function PrioritySidebar({ alerts, loading, error, selectedAlertId, onRet
                   variants={variants}
                   initial="hidden"
                   animate="visible"
-                  exit={{ opacity: 0, scale: 0.95, transition: { duration: 0.15 } }}
+                  exit={{ opacity: 0, transition: { duration: 0.15 } }}
                   custom={index}
                 >
                   <motion.button
                     type="button"
                     onClick={() => onSelect(alert.id)}
-                    whileHover={{ scale: 1.01 }}
-                    whileTap={{ scale: 0.98 }}
-                    className={`w-full rounded-xl border p-3 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background ${
+                    whileTap={{ scale: 0.995 }}
+                    className={`w-full border-l-2 px-4 py-3.5 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring ${
                       selectedAlertId === alert.id
-                        ? "border-primary bg-primary/8 shadow-sm shadow-primary/5"
-                        : "border-border bg-background hover:bg-muted/50"
+                        ? "border-l-signal-bright bg-primary/5"
+                        : "border-l-transparent hover:bg-muted/40"
                     }`}
                   >
                     <div className="flex items-center justify-between gap-2">
                       <span
-                        className={`inline-flex items-center rounded-md border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${badgeColor(alert)}`}
+                        className={`mono-label border px-1.5 py-0.5 text-[8px] font-semibold ${badgeColor(alert)}`}
                       >
                         {incidentLabel(alert)}
                       </span>
-                      <span className="text-[11px] tabular-nums text-muted-foreground">{timeAgo(alert.timestamp)}</span>
+                      <span className="font-mono text-[10px] tabular-nums text-muted-foreground">{timeAgo(alert.timestamp)}</span>
                     </div>
-                    <p className="mt-2 text-sm font-semibold leading-5 text-foreground">{headline(alert)}</p>
-                    <p className="mt-0.5 line-clamp-2 text-xs leading-5 text-muted-foreground">{alert.rawText}</p>
-                    <div className="mt-3 flex items-center justify-between text-[11px] text-muted-foreground">
-                      <span className="tabular-nums">
-                        U<span className="font-semibold text-foreground">{alert.urgencyScore}</span>
+                    <p className="mt-2 text-sm font-semibold leading-snug tracking-tight text-foreground">{headline(alert)}</p>
+                    <p className="mt-1 line-clamp-2 text-xs leading-5 text-muted-foreground">{alert.rawText}</p>
+                    <div className="mt-2.5 flex items-center justify-between font-mono text-[10px] tabular-nums text-muted-foreground">
+                      <span>
+                        U<span className={`font-semibold ${urgencyTone(alert.urgencyScore)}`}>{alert.urgencyScore}</span>
                       </span>
-                      <span className="tabular-nums">
-                        <span className="font-semibold text-foreground">${raised(alert).toLocaleString()}</span> / ${target(alert).toLocaleString()}
+                      <span>
+                        <span className="text-foreground">${raised(alert).toLocaleString()}</span> / ${target(alert).toLocaleString()}
                       </span>
                     </div>
-                    <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-muted" aria-label={`Funding ${progress(alert)}%`}>
+                    <div className="mt-2 h-1 overflow-hidden bg-muted" aria-label={`Funding ${progress(alert)}%`}>
                       <motion.div
-                        className="h-full rounded-full"
-                        style={{
-                          background:
-                            progress(alert) >= 80
-                              ? "linear-gradient(90deg, oklch(0.65 0.15 140), oklch(0.55 0.18 140))"
-                            : progress(alert) >= 40
-                              ? "linear-gradient(90deg, oklch(0.70 0.12 35), oklch(0.62 0.14 35))"
-                              : "linear-gradient(90deg, oklch(0.70 0.12 35), oklch(0.58 0.16 15))",
-                        }}
+                        className={`h-full ${fundingTone(progress(alert))}`}
                         initial={{ width: 0 }}
                         animate={{ width: `${progress(alert)}%` }}
                         transition={{ duration: 0.6, ease: "easeOut" }}
