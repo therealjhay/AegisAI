@@ -46,50 +46,42 @@ export function VaultStateDisplay() {
     <motion.div
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
-      className="rounded-lg border border-border bg-card/50 p-3 space-y-2"
+      className="space-y-2.5 border border-border bg-card/50 p-3"
     >
       <div className="flex items-center justify-between">
-        <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Relief Vault</span>
-        <span className="text-[10px] text-muted-foreground">Mock USDC Reserve</span>
+        <span className="mono-label text-[9px] text-muted-foreground">Relief Vault</span>
+        <span className="font-mono text-[9px] text-muted-foreground">Mock USDC reserve</span>
       </div>
-      <div className="grid grid-cols-2 gap-2 text-xs">
-        <div>
-          <span className="text-muted-foreground">Reserve:</span>
-          <span className="ml-1 font-mono tabular-nums text-foreground">${vault.reserveUSD.toLocaleString()}</span>
-        </div>
-        <div>
-          <span className="text-muted-foreground">Daily Limit:</span>
-          <span className="ml-1 font-mono tabular-nums text-signal-bright">${vault.dailyLimitUSD.toLocaleString()}</span>
-        </div>
-        <div>
-          <span className="text-muted-foreground">Used Today:</span>
-          <span className="ml-1 font-mono tabular-nums text-red-300">${vault.disbursedTodayUSD.toLocaleString()}</span>
-        </div>
-        <div>
-          <span className="text-muted-foreground">Remaining:</span>
-          <span className="ml-1 font-mono tabular-nums text-green-300">${vault.remainingDaily.toLocaleString()}</span>
-        </div>
+      <div className="grid grid-cols-2 gap-x-3 gap-y-1.5 font-mono text-[10px]">
+        <div><span className="text-muted-foreground">RESERVE</span> <span className="ml-1 tabular-nums text-foreground">${vault.reserveUSD.toLocaleString()}</span></div>
+        <div><span className="text-muted-foreground">DAILY CAP</span> <span className="ml-1 tabular-nums text-signal-bright">${vault.dailyLimitUSD.toLocaleString()}</span></div>
+        <div><span className="text-muted-foreground">USED TODAY</span> <span className="ml-1 tabular-nums text-red-300">${vault.disbursedTodayUSD.toLocaleString()}</span></div>
+        <div><span className="text-muted-foreground">REMAINING</span> <span className="ml-1 tabular-nums text-green-300">${vault.remainingDaily.toLocaleString()}</span></div>
       </div>
-      <div className="h-2 bg-muted rounded-full overflow-hidden">
+      <div className="h-1 overflow-hidden bg-muted">
         <motion.div
-          className="h-full bg-signal-bright rounded-full"
+          className="h-full bg-signal-bright"
           initial={{ scaleX: 0 }}
           animate={{ scaleX: Math.min(vault.pctUsed / 100, 1) }}
           transition={{ type: "spring", damping: 20, stiffness: 120 }}
           style={{ transformOrigin: "left" }}
         />
       </div>
-      <p className="text-[10px] text-muted-foreground text-right">{vault.pctUsed}% of daily limit used</p>
+      <p className="text-right font-mono text-[9px] tabular-nums text-muted-foreground">{vault.pctUsed}% of daily limit used</p>
 
-      <div className="border-t border-border pt-2 flex gap-2">
+      <div className="flex gap-2 border-t border-border pt-2.5">
         <input
           type="number"
           placeholder="Deposit USD"
           value={depositAmount}
           onChange={(e) => setDepositAmount(e.target.value)}
-          className="flex-1 px-2 py-1 text-xs rounded border border-input bg-background focus:outline-none focus:ring-1 focus:ring-ring"
+          className="flex-1 border border-input bg-background px-2 py-1 font-mono text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring"
         />
-        <button onClick={handleDeposit} disabled={depositing} className="px-3 py-1 text-xs rounded border border-border bg-card hover:bg-muted disabled:opacity-50">
+        <button
+          onClick={handleDeposit}
+          disabled={depositing}
+          className="mono-label border border-border bg-transparent px-3 py-1 text-[9px] text-muted-foreground transition-colors hover:border-foreground/40 hover:text-foreground disabled:opacity-50"
+        >
           {depositing ? "…" : "Deposit"}
         </button>
       </div>
