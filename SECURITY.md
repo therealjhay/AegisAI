@@ -1,129 +1,157 @@
-# Security Hardening Guide
+# AEGIS — Security & Threat Model
 
-## Security Objective
+AEGIS is designed for **humanitarian triage**, not offensive surveillance. Security priorities: prevent data abuse, reduce adversarial manipulation, and block misuse as a honey-pot / social-engineering vector. Because AEGIS also **moves money**, settlement integrity and spoofing resistance are first-class concerns.
 
-AEGIS is designed for humanitarian triage, not offensive surveillance. The security model prioritizes preventing data abuse, reducing adversarial manipulation, and blocking system misuse as a "honey pot" for bad actors.
+---
 
-## Threat Model Focus
+## 1. Threat Model
 
-Primary misuse concern:
+### Primary — Mission-Critical Threats
 
-- A malicious actor injects fabricated alerts to attract responders into unsafe zones or to map NGO movement patterns.
+| Threat | Impact | Class |
+|--------|--------|-------|
+| **Authentic Funding Bypass** | A fabricated incident verifies and receives a real disbursement. | Integrity |
+| **Signature Forgery** | A caller forges a `verified` cluster without valid agent signatures. | Integrity |
+| **Disbursement Replay / Doubt** | Same cluster paid more than once, or amount altered after approval. | Integrity |
+| **Adversarial Signal Injection** | Fake reports lure responders into traps or map NGO movement. | Safety / Privacy |
 
-Secondary concerns:
+### Secondary
 
-- Data poisoning to degrade trust in urgency ranking.
-- Unauthorized data extraction of incident/response patterns.
-- Infrastructure compromise to alter alerts or operational views.
+- **Data poisoning** — degrade urgency ranking / trust in verification.
+- **Overspending** — caps bypassed → funds exhausted unsafely.
+- **Infrastructure compromise** — alter alerts, votes, or operational views.
+- **Unauthorized data extraction** — incident/response pattern mapping.
 
-## Mitigations Already Implemented
+---
 
-### 1. Verification Gate Before Persistence
+## 2. Mitigations Implemented
 
-The ingestion service enforces strict payload validation and verification before writing to `Alerts`:
+### 2.1 Verification Gate Before Persistence (Pillar 1)
 
-1. Schema validation with Zod.
+The ingestion service validates, scores source credibility, de-duplicates (1km/1h), and quarantines before writing to `Alerts`:
+
+1. Zod schema validation.
 2. Source credibility scoring.
 3. Duplicate suppression (1 km / 1 hour window).
 4. Quarantine routing for suspicious payloads.
 
-Result: low-trust or malformed payloads do not enter the primary operator dataset.
+Result: low-trust or malformed payloads do not enter the primary dataset.
 
-### 2. Quarantine Audit Trail
+### 2.2 Quarantine Audit Trail
 
-Suspicious payloads are stored in `Quarantine_Alerts` with:
+Suspicious payloads persist in `Quarantine_Alerts` with reason codes, structured details, and an immutable timestamp. Analysts can investigate adversarial campaigns without contaminating the live map.
 
-- reason codes,
-- structured details,
-- immutable timestamp.
+### 2.3 Verified-Alert Gating in the UI
 
-Result: analysts can investigate adversarial campaigns without contaminating live operational maps.
+Command Center APIs and views restrict to `verified_status = true`. Unverified data cannot automatically drive field dispatch.
 
-### 3. Verified Alert Gating in UI
+### 2.4 Multi-Agent Consensus (Pillar 2)
 
-Command Center APIs and UI use `verified_status = true` for priority/heatmap displays.
+- **No single-agent decision.** A fabricated or misleading signal must fool **3 of 4 independent specialists** to pass.
+- **Independent votes.** Agents do not message each other mid-run, so one confident agent can't sway the rest.
+- **Failure default.** The Risk Governor defaults to `abstain`/reject under cap stress — the system errs toward **not** spending.
 
-Result: unverified data cannot automatically drive field dispatch decisions.
+### 2.5 Cryptographic Settlement Integrity (Pillar 3)
 
-### 4. Defense-in-Depth on AI Output
+- **Signed votes.** Every vote is HMAC-signed over `agentType:clusterId:vote:score`.
+- **Server-side re-verification.** The vault `verifyVote`s every signature and rejects the cluster if fewer than **3 valid yes**.
+- **Tamper-evident quorum hash.** `SHA256` over *sorted* `agentType:vote:signature[:16]` — order-independent, cannot be silently altered.
+- **Idempotent settlement.** A cluster already marked `disbursed` is rejected; a second pay of the same cluster fails.
+- **Bounded payout.** Amounts come from the governor's `effective` value (caps), not arbitrary client requests.
 
-Brain service triage outputs are bounded and structured:
+### 2.6 Defense-in-Depth on AI Output
 
-- urgency constrained to 1-5,
-- normalized response shape,
-- deterministic fallback when LLM key is unavailable.
+Brain Service triage outputs are bounded and structured: urgency constrained to 1–5, normalized response shape, deterministic fallback when no LLM key is present.
 
-Result: model behavior is constrained and less likely to produce unsafe free-form outputs.
+### 2.7 Cap Stack (never reckless)
 
-## Honey-Pot Misuse Mitigation Strategy
+| Cap | Enforced In |
+|-----|-------------|
+| Tier / per-incident | `TIER_CAPS` + governor `effective` |
+| Daily | `amountUSD > remainingDaily` → reject |
+| Reserve | `> 10% reserve` or `> reserve` → reject |
 
-To reduce risk of luring responders into traps:
+---
 
-1. **Do not auto-deploy from a single alert.**
-   - Require multi-source confirmation or trusted human verification.
-2. **Correlate with independent channels.**
-   - Cross-check with partner NGOs, public advisories, or local authority feeds.
-3. **Treat geolocation as advisory until verified.**
-   - Especially for first-time or low-credibility sources.
-4. **Require human approval workflow for high-risk missions.**
-   - AI ranking supports decisions; it does not replace commander authorization.
-5. **Review quarantine trends daily.**
-   - Burst patterns from repeated sources should trigger source blocking.
+## 3. Honey-Pot Misuse Mitigation
 
-## Production Security Controls (Required)
+To reduce the risk of luring responders into traps:
+
+1. **Do not auto-deploy from a single alert** — require multi-source confirmation or trusted human verification.
+2. **Correlate with independent channels** — partner NGOs, public advisories, local authority feeds.
+3. **Treat geolocation as advisory until verified** — especially for first-time or low-credibility sources.
+4. **Human approval for high-risk missions** — AI ranking supports; it does not replace commander authorization.
+5. **Review quarantine trends daily** — repeated-source bursts should trigger source blocking.
+
+---
+
+## 4. Production Security Controls (Required)
 
 ### Access Control
-
-- Restrict database and APIs to private networks/VPN where possible.
-- Use role-based access for operators, analysts, and administrators.
-- Enforce least privilege on DB credentials.
+- Restrict DB and APIs to private networks/VPN where possible.
+- Role-based access for operators, analysts, admins; least privilege on DB credentials.
 
 ### Secret Management
-
-- Store keys (`OPENAI_API_KEY`, DB credentials, Mapbox token) in secret managers or environment-injection tooling.
-- Never commit secrets to git.
-- Rotate keys on schedule and after any suspected exposure.
+- Store `DATABASE_URL`, `NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN`, `OPENAI_API_KEY`, agent signing secrets in a secrets manager / env injection.
+- Never commit secrets to git. Rotate on schedule and after exposure.
 
 ### Transport Security
-
-- TLS termination at reverse proxy/load balancer.
-- HTTPS-only traffic for all operator endpoints.
+- TLS termination at the reverse proxy / load balancer; HTTPS-only for all operator endpoints.
 
 ### Observability & Detection
-
-- Log authentication events, API failures, and anomaly spikes.
+- Log auth events, API failures, anomaly spikes.
 - Alert on unusual bursts of similar alerts or repeated source patterns.
-- Track repeated quarantine reasons by source and geography.
+- Track quarantine reasons by source and geography.
 
 ### Data Governance
-
 - Minimize retained sensitive fields.
 - Restrict export access for incident raw text and precise coordinates.
-- Define retention policy for `Quarantine_Alerts` and logs.
+- Define a retention policy for `Quarantine_Alerts` and logs.
 
-## Secure Operations Checklist
+---
 
-Before go-live:
+## 5. Disbursement Integrity Checklist (specific to wallet moves)
 
-1. Confirm `verified_status` gating is enabled in all operational views.
-2. Confirm secrets are externalized and rotated.
-3. Confirm backup/restore process is tested (see `DISASTER_RECOVERY.md`).
-4. Confirm incident-response owner is designated.
-5. Confirm manual dispatch approval policy is documented and enforced.
+Before allowing a disbursement, confirm:
 
-During operations:
+- [ ] Cluster exists and is not already `disbursed`.
+- [ ] All provided vote signatures re-verify server-side.
+- [ ] At least **3** signatures resolve to `yes`.
+- [ ] The amount equals the governor's `effective` (capped) value.
+- [ ] Daily remaining and reserve headroom are sufficient.
+- [ ] Recipient is an explicit wallet OR a verified `NGO_User` OR the deterministic mock fallback.
+- [ ] The disbursement writes a `tx_signature` + `explorer_url` for the audit trail.
 
-1. Monitor quarantine rate and source anomalies.
-2. Recalibrate credibility thresholds if attack patterns change.
-3. Patch dependencies and OS baseline regularly.
+---
 
-## Incident Response (Abuse Scenario)
+## 6. Adversarial Scenario Playbook
 
-If coordinated malicious alert campaign is suspected:
-
-1. Freeze automated downstream actions.
-2. Temporarily tighten ingestion threshold (higher credibility requirement).
-3. Isolate suspicious sources and quarantine all related payloads.
-4. Notify field coordinators of potential deception risk.
-5. Forensically review logs, payload patterns, and access activity.
+**Coordinated fake-report campaign suspected:**
+1. Freeze automated downstream actions (disbursement).
+2. Tighten ingestion threshold (raise credibility bar).
+3. Isolate suspicious sources; quarantine related payloads.
+4. Notify field coordinators of deception risk.
+5. Forensically review logs, payload patterns, access activity.
 6. Rotate credentials and redeploy clean artifacts if compromise is suspected.
+
+**Forged cluster / invalid signature received:**
+1. Reject at settlement; log the failure.
+2. Record the cluster under `audit_required`.
+3. Investigate how the invalid signatures were produced.
+4. Rotate agent secrets if a signing key is suspected compromised.
+
+---
+
+## 7. Secure Operations Checklist
+
+**Before go-live:**
+- [ ] `verified_status` gating enabled in all views.
+- [ ] Secrets externalized and rotation scheduled.
+- [ ] Backup/restore tested (see `DISASTER_RECOVERY.md`).
+- [ ] Incident-response owner designated.
+- [ ] Manual dispatch-approval policy documented and enforced.
+
+**During operations:**
+- [ ] Monitor quarantine rate + source anomalies.
+- [ ] Recalibrate credibility thresholds as attack patterns change.
+- [ ] Patch dependencies and the OS baseline regularly.
