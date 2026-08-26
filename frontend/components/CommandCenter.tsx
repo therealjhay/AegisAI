@@ -10,6 +10,7 @@ import { MapHeatmap } from "@/components/MapHeatmap";
 import { PrioritySidebar } from "@/components/PrioritySidebar";
 import { SwarmPanel } from "@/components/SwarmPanel";
 import { AuditView } from "@/components/AuditView";
+import { IconCheck, IconClipboard, IconSwarm, IconX } from "@/components/icons";
 // VaultStateDisplay available via /api/vault/state — shown in SwarmPanel
 
 export type HeatmapPoint = {
@@ -408,7 +409,7 @@ export function CommandCenter() {
           <div className="flex items-center gap-3">
             <Link
               href="/"
-              aria-label="AegisAI — back to field manual"
+              aria-label="AEGIS — back to field manual"
               className="group flex min-w-0 items-center gap-2.5 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
             >
               <Image
@@ -421,7 +422,7 @@ export function CommandCenter() {
               />
               <span className="min-w-0">
                 <h1 className="text-base font-semibold tracking-tight text-foreground transition-colors group-hover:text-signal-bright">
-                  AegisAI
+                  AEGIS
                 </h1>
                 <p className="text-[11px] uppercase tracking-[0.15em] text-muted-foreground">
                   Autonomous Dispatcher
@@ -440,10 +441,10 @@ export function CommandCenter() {
                 key={filter}
                 type="button"
                 onClick={() => setQuickFilter(filter)}
-                className={`h-8 shrink-0 rounded-md border px-2.5 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-background ${
+                className={`h-8 shrink-0 border px-3 text-[10px] font-semibold uppercase tracking-[0.1em] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-background ${
                   quickFilter === filter
-                    ? "border-primary bg-primary text-primary-foreground"
-                    : "border-border bg-card text-muted-foreground hover:text-foreground"
+                    ? "border-signal-bright bg-signal-bright text-navy-deep"
+                    : "border-border bg-transparent text-muted-foreground hover:border-foreground/40 hover:text-foreground"
                 }`}
               >
                 {filter}
@@ -454,16 +455,16 @@ export function CommandCenter() {
           <div className="flex items-center justify-end gap-2">
             <Link
               href="/"
-              className="mono-label hidden h-8 items-center rounded-md border border-border bg-card px-2.5 text-[10px] text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-background sm:inline-flex"
+              className="mono-label hidden h-8 items-center border border-border bg-transparent px-3 text-[10px] text-muted-foreground transition-colors hover:border-foreground/40 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-background sm:inline-flex"
             >
               ← Field Manual
             </Link>
             <label className="hidden items-center gap-1.5 sm:flex">
-              <span className="text-[11px] font-medium text-muted-foreground">Sector</span>
+              <span className="mono-label text-[9px] text-muted-foreground">Sector</span>
               <select
                 value={selectedSector}
                 onChange={(event) => updateSector(event.target.value)}
-                className="h-8 rounded-md border border-input bg-card px-2 text-xs text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-background"
+                className="h-8 border border-input bg-transparent px-2 font-mono text-[11px] uppercase tracking-wide text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-background"
               >
                 {sectors.map((sector) => (
                   <option key={sector} value={sector}>{sector}</option>
@@ -473,20 +474,26 @@ export function CommandCenter() {
             <button
               type="button"
               onClick={() => setLowBandwidth((v) => !v)}
-              className={`h-8 rounded-md border px-2.5 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-background ${
-                lowBandwidth ? "border-signal-bright/50 bg-signal-bright/15 text-signal-bright" : "border-border bg-card text-muted-foreground hover:text-foreground"
+              aria-pressed={lowBandwidth}
+              className={`mono-label h-8 border px-2.5 text-[10px] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-background ${
+                lowBandwidth
+                  ? "border-signal-bright/60 bg-signal-bright/15 text-signal-bright"
+                  : "border-border bg-transparent text-muted-foreground hover:text-foreground"
               }`}
             >
-              {lowBandwidth ? "BW: Off" : "BW: On"}
+              {lowBandwidth ? "Low BW · On" : "Low BW · Off"}
             </button>
             <button
               type="button"
               onClick={() => setSimulationMode((v) => !v)}
-              className={`h-8 rounded-md border px-2.5 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-background ${
-                simulationMode ? "border-green-400 bg-green-500/20 text-green-300" : "border-border bg-card text-muted-foreground hover:text-foreground"
+              aria-pressed={simulationMode}
+              className={`mono-label h-8 border px-2.5 text-[10px] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-background ${
+                simulationMode
+                  ? "border-green-500/50 bg-green-500/10 text-green-300"
+                  : "border-border bg-transparent text-muted-foreground hover:text-foreground"
               }`}
             >
-              {simulationMode ? "Sim: On" : "Sim: Off"}
+              {simulationMode ? "Sim · On" : "Sim · Off"}
             </button>
           </div>
         </div>
@@ -496,10 +503,10 @@ export function CommandCenter() {
               key={filter}
               type="button"
               onClick={() => setQuickFilter(filter)}
-              className={`h-7 shrink-0 rounded-md border px-2 text-[11px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-background ${
+              className={`h-7 shrink-0 border px-2.5 text-[10px] font-semibold uppercase tracking-[0.1em] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-background ${
                 quickFilter === filter
-                  ? "border-primary bg-primary text-primary-foreground"
-                  : "border-border bg-card text-muted-foreground"
+                  ? "border-signal-bright bg-signal-bright text-navy-deep"
+                  : "border-border bg-transparent text-muted-foreground"
               }`}
             >
               {filter}
@@ -537,27 +544,27 @@ export function CommandCenter() {
             className="pointer-events-auto absolute bottom-4 left-4 right-4 z-10"
           >
             <div className="flex items-center gap-3">
-              <div className="flex-1 inline-flex items-center gap-3 rounded-lg border border-border bg-card/90 px-3.5 py-1.5 text-xs backdrop-blur-sm">
-                <span className="tabular-nums font-semibold">{mergedAlerts.length} <span className="font-normal text-muted-foreground">alerts</span></span>
+              <div className="flex-1 inline-flex items-center gap-3 border border-border bg-background/90 px-3.5 py-1.5 backdrop-blur-sm">
+                <span className="font-mono text-[11px] tabular-nums">{mergedAlerts.length} <span className="text-muted-foreground">alerts</span></span>
                 <span aria-hidden="true" className="h-3 w-px bg-border" />
-                <span className="tabular-nums font-semibold text-red-300">{criticalCount} <span className="font-normal text-red-200/70">critical</span></span>
+                <span className="font-mono text-[11px] tabular-nums text-red-300">{criticalCount} <span className="text-red-200/60">critical</span></span>
                 <span aria-hidden="true" className="h-3 w-px bg-border" />
-                <span className="tabular-nums font-semibold text-signal-bright">${Math.round(totalDeficit / 1000)}k <span className="font-normal text-signal-bright/70">deficit</span></span>
+                <span className="font-mono text-[11px] tabular-nums text-signal-bright">${Math.round(totalDeficit / 1000)}k <span className="text-signal-bright/60">deficit</span></span>
               </div>
 
               {/* Quick Inject */}
-              <div className="flex items-center gap-1 rounded-lg border border-border bg-card/90 px-2 py-1 backdrop-blur-sm">
+              <div className="flex items-center gap-1 border border-border bg-background/90 px-2 py-1 backdrop-blur-sm">
                 <input
                   value={injectText}
                   onChange={(e) => setInjectText(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && injectIncident()}
                   placeholder="Inject disaster report…"
-                  className="w-40 bg-transparent text-[11px] text-foreground placeholder:text-muted-foreground focus:outline-none sm:w-56"
+                  className="w-40 bg-transparent font-mono text-[11px] text-foreground placeholder:text-muted-foreground focus:outline-none sm:w-56"
                 />
                 <button
                   onClick={injectIncident}
                   disabled={injecting || !injectText.trim()}
-                  className="shrink-0 rounded bg-primary/90 px-2 py-0.5 text-[10px] font-semibold text-primary-foreground hover:bg-primary disabled:opacity-40"
+                  className="mono-label shrink-0 bg-signal-bright px-2.5 py-1 text-[10px] font-semibold text-navy-deep transition-colors hover:bg-signal disabled:opacity-40"
                 >
                   {injecting ? "…" : "Inject"}
                 </button>
@@ -575,7 +582,7 @@ export function CommandCenter() {
               initial="hidden"
               animate="visible"
               exit="exit"
-              className="fixed inset-y-0 right-0 z-40 w-full max-w-sm flex flex-col border-l border-border bg-card shadow-2xl sm:top-0 sm:h-full"
+              className="fixed inset-y-0 right-0 z-40 w-full max-w-sm flex flex-col border-l border-border bg-card sm:top-0 sm:h-full"
             >
               {activeRightPanel === "swarm" && (
                 <SwarmPanel
@@ -604,49 +611,49 @@ export function CommandCenter() {
             initial="hidden"
             animate="visible"
             exit="exit"
-            className="fixed inset-y-0 right-0 z-40 flex w-full max-w-sm flex-col border-l border-border bg-card shadow-2xl sm:top-0 sm:h-full"
+            className="fixed inset-y-0 right-0 z-40 flex w-full max-w-sm flex-col border-l border-border bg-card sm:top-0 sm:h-full"
             aria-labelledby="detail-title"
           >
             <div className="flex items-start justify-between gap-4 border-b border-border p-4">
               <div className="min-w-0">
-                <p className="text-[11px] uppercase tracking-[0.15em] text-muted-foreground">Incident</p>
-                <h2 id="detail-title" className="mt-0.5 truncate text-base font-semibold">{inferIncidentType(selectedAlert)}</h2>
+                <p className="mono-label text-[9px] text-muted-foreground">Incident</p>
+                <h2 id="detail-title" className="mt-1 truncate text-base font-semibold tracking-tight">{inferIncidentType(selectedAlert)}</h2>
               </div>
               <button
                 type="button"
                 onClick={() => setSelectedAlertId(null)}
-                className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-border text-sm text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-background"
+                className="flex h-7 w-7 shrink-0 items-center justify-center border border-border text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 aria-label="Close detail panel"
               >
-                ×
+                <IconX width={14} height={14} />
               </button>
             </div>
 
-            <div className="min-h-0 flex-1 space-y-3 overflow-y-auto p-4">
+            <div className="min-h-0 flex-1 space-y-0 divide-y divide-border overflow-y-auto p-4">
               <motion.div
                 initial={{ opacity: 0, y: 8 }}
                 animate={{ opacity: 1, y: 0, transition: { delay: 0.08 } }}
-                className="rounded-lg border border-border bg-background p-3"
+                className="pb-4"
               >
-                <p className="text-xs font-semibold text-foreground">Summary</p>
-                <p className="mt-1.5 text-xs leading-5 text-muted-foreground">
+                <p className="mono-label text-[9px] text-muted-foreground">Summary</p>
+                <p className="mt-2 text-xs leading-5 text-foreground">
                   {selectedAlert.rawText}
                 </p>
-                <p className="mt-1.5 text-xs text-muted-foreground">
-                  Urgency {selectedAlert.urgencyScore} · ${Math.round((fundingTarget(selectedAlert) - fundingRaised(selectedAlert)) / 1000)}k deficit
+                <p className="mt-2 font-mono text-[11px] tabular-nums text-muted-foreground">
+                  URGENCY {selectedAlert.urgencyScore}/5 · DEFICIT ${Math.round((fundingTarget(selectedAlert) - fundingRaised(selectedAlert)) / 1000)}k
                 </p>
               </motion.div>
 
               <motion.div
                 initial={{ opacity: 0, y: 8 }}
                 animate={{ opacity: 1, y: 0, transition: { delay: 0.14 } }}
-                className="rounded-lg border border-border bg-background p-3"
+                className="py-4"
               >
-                <p className="text-xs font-semibold text-foreground">Landmarks</p>
-                <ul className="mt-1.5 space-y-1">
+                <p className="mono-label text-[9px] text-muted-foreground">Landmarks</p>
+                <ul className="mt-2 space-y-1.5">
                   {["Maiduguri Market perimeter", "State Specialist Hospital", "Central Primary School shelter"].map((lm) => (
                     <li key={lm} className="flex items-center gap-2 text-xs text-muted-foreground">
-                      <span className="h-1 w-1 rounded-full bg-border" />
+                      <span aria-hidden="true" className="h-1 w-1 shrink-0 bg-signal-bright" />
                       {lm}
                     </li>
                   ))}
@@ -656,46 +663,46 @@ export function CommandCenter() {
               <motion.div
                 initial={{ opacity: 0, y: 8 }}
                 animate={{ opacity: 1, y: 0, transition: { delay: 0.2 } }}
-                className="rounded-lg border border-border bg-background p-3"
+                className="py-4"
               >
-                <p className="text-xs font-semibold text-foreground">Funding</p>
-                <div className="mt-2 h-2 overflow-hidden rounded-full bg-muted">
+                <p className="mono-label text-[9px] text-muted-foreground">Funding</p>
+                <div className="mt-2.5 h-1 overflow-hidden bg-muted">
                   <motion.div
-                    className="h-full rounded-full bg-signal-bright"
+                    className="h-full bg-signal-bright"
                     initial={{ scaleX: 0 }}
                     animate={{ scaleX: fundingRaised(selectedAlert) / fundingTarget(selectedAlert) }}
                     transition={{ type: "spring", damping: 20, stiffness: 120 }}
                     style={{ transformOrigin: "left" }}
                   />
                 </div>
-                <p className="mt-1.5 text-xs text-muted-foreground">
-                  ${fundingRaised(selectedAlert).toLocaleString()} of ${fundingTarget(selectedAlert).toLocaleString()}
+                <p className="mt-2 font-mono text-[11px] tabular-nums text-muted-foreground">
+                  ${fundingRaised(selectedAlert).toLocaleString()} / ${fundingTarget(selectedAlert).toLocaleString()}
                 </p>
               </motion.div>
 
               {/* Swarm + Audit buttons */}
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-2 gap-2 pt-4">
                 <motion.button
                   initial={{ opacity: 0, y: 8 }}
                   animate={{ opacity: 1, y: 0, transition: { delay: 0.24 } }}
-                  whileHover={{ scale: 1.01 }}
                   whileTap={{ scale: 0.98 }}
                   type="button"
                   onClick={() => openSwarmForAlert(selectedAlert)}
-                  className="rounded-md border border-green-500/30 bg-green-500/10 px-3 py-2 text-xs font-semibold text-green-300 hover:bg-green-500/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  className="flex items-center justify-center gap-2 border border-green-500/30 bg-green-500/10 px-3 py-2 text-xs font-semibold text-green-300 transition-colors hover:bg-green-500/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 >
-                  🐝 Run Swarm
+                  <IconSwarm width={14} height={14} />
+                  Run Swarm
                 </motion.button>
                 <motion.button
                   initial={{ opacity: 0, y: 8 }}
                   animate={{ opacity: 1, y: 0, transition: { delay: 0.28 } }}
-                  whileHover={{ scale: 1.01 }}
                   whileTap={{ scale: 0.98 }}
                   type="button"
                   onClick={() => openAuditForAlert(selectedAlert)}
-                  className="rounded-md border border-border bg-background px-3 py-2 text-xs font-semibold text-foreground hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  className="flex items-center justify-center gap-2 border border-border bg-transparent px-3 py-2 text-xs font-semibold text-foreground transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 >
-                  📋 Audit Trail
+                  <IconClipboard width={14} height={14} />
+                  Audit Trail
                 </motion.button>
               </div>
             </div>
@@ -716,11 +723,11 @@ export function CommandCenter() {
           >
             <div className="max-w-2xl mx-auto flex items-center justify-between gap-4">
               <div className="flex items-center gap-3">
-                <span className="text-green-400 text-lg">✓</span>
+                <span className="text-green-400"><IconCheck width={18} height={18} /></span>
                 <div>
-                  <p className="text-xs font-semibold text-green-300">Disbursement Confirmed</p>
-                  <p className="text-[10px] text-muted-foreground">
-                    ${disburseResult.amountUSD.toLocaleString()} USDC · Tx: <span className="font-mono">{disburseResult.txSignature.slice(0, 16)}…</span>
+                  <p className="text-xs font-semibold text-green-300">Disbursement confirmed</p>
+                  <p className="font-mono text-[10px] text-muted-foreground">
+                    ${disburseResult.amountUSD.toLocaleString()} USDC · TX {disburseResult.txSignature.slice(0, 16)}…
                   </p>
                 </div>
               </div>
@@ -730,16 +737,17 @@ export function CommandCenter() {
                     href={disburseResult.explorerUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="rounded-md bg-green-500/20 px-3 py-1.5 text-[11px] font-medium text-green-300 hover:bg-green-500/30"
+                    className="bg-green-500/20 px-3 py-1.5 text-[11px] font-medium text-green-300 transition-colors hover:bg-green-500/30"
                   >
                     Explorer →
                   </a>
                 )}
                 <button
                   onClick={() => setDisburseResult(null)}
-                  className="rounded-md border border-border px-2 py-1.5 text-[11px] text-muted-foreground hover:text-foreground"
+                  className="flex h-7 w-7 items-center justify-center border border-border text-muted-foreground transition-colors hover:text-foreground"
+                  aria-label="Dismiss"
                 >
-                  ×
+                  <IconX width={13} height={13} />
                 </button>
               </div>
             </div>
