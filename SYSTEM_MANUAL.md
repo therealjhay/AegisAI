@@ -1,8 +1,8 @@
-# AegisAI Comprehensive System Manual
+# AEGIS Comprehensive System Manual
 
 ## 1. Purpose
 
-AegisAI is a defensive disaster-triage platform for NGOs. It ingests raw incident reports, verifies and scores them, classifies life-threat urgency, and presents verified alerts on a geospatial command center for deployment decisions.
+AEGIS is a defensive disaster-triage platform for NGOs. It ingests raw incident reports, verifies and scores them, classifies life-threat urgency, and presents verified alerts on a geospatial command center for deployment decisions.
 
 ## 2. System Scope
 

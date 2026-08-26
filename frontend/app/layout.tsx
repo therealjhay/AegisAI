@@ -17,9 +17,9 @@ const plexMono = IBM_Plex_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "AegisAI — Verified disaster triage for NGO response",
+  title: "AEGIS — Verified disaster triage for NGO response",
   description:
-    "AegisAI turns raw field reports into verified, funded response: OSINT ingestion, a four-agent verification quorum, parametric USDC settlement, and a full audit trail.",
+    "AEGIS turns raw field reports into verified, funded response: OSINT ingestion, a four-agent verification quorum, parametric USDC settlement, and a full audit trail.",
 };
 
 export default function RootLayout({

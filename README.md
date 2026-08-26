@@ -1,6 +1,6 @@
-# AegisAI
+# AEGIS
 
-AegisAI is a defensive, event-driven geospatial platform for NGO disaster triage.
+AEGIS is a defensive, event-driven geospatial platform for NGO disaster triage.
 
 ## Implemented phases
 

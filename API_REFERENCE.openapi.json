@@ -1,7 +1,7 @@
 {
   "openapi": "3.1.0",
   "info": {
-    "title": "AegisAI Brain Service",
+    "title": "AEGIS Brain Service",
     "version": "0.1.0"
   },
   "paths": {

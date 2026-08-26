@@ -38,7 +38,7 @@ const config: Config = {
           DEFAULT: "oklch(var(--card))",
           foreground: "oklch(var(--card-foreground))",
         },
-        // Brand palette extracted from the AegisAI logo
+        // Brand palette extracted from the AEGIS logo
         navy: {
           DEFAULT: "#0C2448",
           deep: "#0A1B36",

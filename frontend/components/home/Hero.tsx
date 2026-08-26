@@ -31,7 +31,7 @@ export function Hero() {
               Raw reports in. Verified response out.
             </h1>
             <p className="mt-7 max-w-xl text-lg leading-relaxed text-navy-soft">
-              AegisAI ingests incident reports from SMS, social feeds and
+              AEGIS ingests incident reports from SMS, social feeds and
               partner relays, clusters them geographically, and puts every
               cluster before a four-agent AI quorum. When 3-of-4 agents sign
               off, the vault releases parametric USDC funding — and every
@@ -66,7 +66,7 @@ export function Hero() {
               <div className="flex items-center justify-center p-4">
                 <Image
                   src="/logo-mark.png"
-                  alt="AegisAI shield mark — a navy shield enclosing an orange signal mesh"
+                  alt="AEGIS shield mark — a navy shield enclosing an orange signal mesh"
                   width={320}
                   height={320}
                   priority

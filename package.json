@@ -1,5 +1,5 @@
 {
-  "name": "aegisai",
+  "name": "aegis",
   "version": "1.0.0",
   "private": true,
   "scripts": {
@@ -20,7 +20,7 @@
     "prisma"
   ],
   "license": "MIT",
-  "description": "AegisAI database and geospatial schema bootstrap",
+  "description": "AEGIS database and geospatial schema bootstrap",
   "devDependencies": {
     "@types/node": "^22.10.1",
     "prisma": "^5.15.0",

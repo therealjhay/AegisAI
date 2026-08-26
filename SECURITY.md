@@ -2,7 +2,7 @@
 
 ## Security Objective
 
-AegisAI is designed for humanitarian triage, not offensive surveillance. The security model prioritizes preventing data abuse, reducing adversarial manipulation, and blocking system misuse as a "honey pot" for bad actors.
+AEGIS is designed for humanitarian triage, not offensive surveillance. The security model prioritizes preventing data abuse, reducing adversarial manipulation, and blocking system misuse as a "honey pot" for bad actors.
 
 ## Threat Model Focus
 

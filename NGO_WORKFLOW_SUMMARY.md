@@ -2,7 +2,7 @@
 
 ## 1. Alert Intake
 
-A raw report enters AegisAI through the ingestion pipeline (SMS, social feed, partner relay, or operator entry).
+A raw report enters AEGIS through the ingestion pipeline (SMS, social feed, partner relay, or operator entry).
 
 ## 2. Verification & Risk Screening
 
@@ -58,7 +58,7 @@ As new reports arrive, the platform updates map density and priority ordering. T
 
 ## 8. Why This Workflow Matters
 
-AegisAI helps NGOs move from reactive chaos to structured response:
+AEGIS helps NGOs move from reactive chaos to structured response:
 
 - less noise from untrusted inputs,
 - clearer urgency ranking,

@@ -31,7 +31,7 @@ export function TrustSection() {
             </h2>
           </div>
           <p className="max-w-md text-base leading-relaxed text-navy-soft">
-            An NGO stakes its reputation on every deployment. AegisAI is
+            An NGO stakes its reputation on every deployment. AEGIS is
             engineered so the system can be wrong safely — and never silently.
           </p>
         </div>

@@ -14,7 +14,7 @@ export function SiteNav() {
         <Link
           href="/"
           className="flex items-center gap-3"
-          aria-label="AegisAI home"
+          aria-label="AEGIS home"
         >
           <Image
             src="/logo-mark.png"
@@ -25,7 +25,7 @@ export function SiteNav() {
             priority
           />
           <span className="text-lg font-bold tracking-tight text-navy">
-            AEGIS<span className="text-signal">AI</span>
+            AEGIS
           </span>
         </Link>
 

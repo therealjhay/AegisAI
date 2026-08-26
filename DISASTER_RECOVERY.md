@@ -2,7 +2,7 @@
 
 ## Purpose
 
-This runbook explains how to restore AegisAI when the primary server fails, including database restoration and service redeployment.
+This runbook explains how to restore AEGIS when the primary server fails, including database restoration and service redeployment.
 
 ## Recovery Targets
 

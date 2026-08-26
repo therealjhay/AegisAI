@@ -1,9 +1,9 @@
 openapi: 3.0.3
 info:
-  title: AegisAI API Technical Reference
+  title: AEGIS API Technical Reference
   version: 1.0.0
   description: >
-    Unified API reference for AegisAI Brain Service (FastAPI) and Command Center data APIs (Next.js route handlers).
+    Unified API reference for AEGIS Brain Service (FastAPI) and Command Center data APIs (Next.js route handlers).
 servers:
   - url: http://localhost:8001
     description: Brain Service (FastAPI)

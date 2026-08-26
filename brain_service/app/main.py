@@ -19,7 +19,7 @@ class TriageResponse(BaseModel):
 
 
 def create_app(service: TriageService | None = None) -> FastAPI:
-    app = FastAPI(title="AegisAI Brain Service (Swarm)", version="0.2.0")
+    app = FastAPI(title="AEGIS Brain Service (Swarm)", version="0.2.0")
     triage_service = service or TriageService()
 
     @app.get("/health")

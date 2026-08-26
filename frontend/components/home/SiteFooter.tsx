@@ -30,7 +30,7 @@ export function SiteFooter() {
                 className="h-9 w-9"
               />
               <span className="text-lg font-bold tracking-tight">
-                AEGIS<span className="text-signal-bright">AI</span>
+                AEGIS
               </span>
             </div>
             <p className="mt-5 max-w-sm leading-relaxed text-paper/60">
@@ -69,7 +69,7 @@ export function SiteFooter() {
 
         <div className="flex flex-col gap-3 pt-6 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-xs text-paper/45">
-            © 2026 AegisAI — decision support for humanitarian operations.
+            © 2026 AEGIS — decision support for humanitarian operations.
           </p>
           <p className="mono-label text-[9px] text-paper/40">
             OSINT in · verified response out
