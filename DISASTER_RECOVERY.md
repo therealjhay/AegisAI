@@ -1,24 +1,23 @@
-# Disaster Recovery Runbook
+# AEGIS — Disaster Recovery Runbook
 
-## Purpose
-
-This runbook explains how to restore AEGIS when the primary server fails, including database restoration and service redeployment.
+This runbook restores the AEGIS platform (ingestion + swarm + vault + command center) if a primary deployment fails. It covers local and hosted (Supabase) database restoration and redeployment.
 
 ## Recovery Targets
 
-- **RTO (Recovery Time Objective):** Restore core triage operations as fast as possible.
-- **RPO (Recovery Point Objective):** Limited by most recent validated database backup.
+- **RTO (Recovery Time Objective):** Restore verification + settlement operations as fast as possible.
+- **RPO (Recovery Point Objective):** Limited by the most recent validated database backup.
 
 ## Prerequisites
 
 1. Access to backup artifacts:
-   - PostgreSQL logical dumps or snapshot backups.
+   - PostgreSQL logical dumps or snapshot backups (local `aegis` db, or the hosted Supabase project).
    - Repository source code.
 2. Access to deployment secrets:
    - `DATABASE_URL`
-   - `OPENAI_API_KEY` (optional for LLM mode)
    - `NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN`
-3. Docker + Node.js + Python available on recovery host.
+   - `OPENAI_API_KEY` + `USE_LLM_SWARM` (optional for LLM mode)
+   - Agent signing secrets (`AGENT_*_SECRET`) — needed to reproduce valid signatures.
+3. Docker + Node.js + Python available on the recovery host.
 
 ## Backup Policy (Recommended)
 
@@ -45,6 +44,8 @@ This runbook explains how to restore AEGIS when the primary server fails, includ
 
 ### Step 2: Restore Database Service
 
+**Local (Docker) deployment:**
+
 1. Start Postgres/PostGIS:
    ```bash
    docker compose up -d
@@ -53,14 +54,27 @@ This runbook explains how to restore AEGIS when the primary server fails, includ
    ```bash
    npm run db:init
    ```
-3. Apply Prisma migrations:
+3. Bootstrap the V2 schema (tables + seed):
    ```bash
-   npx prisma migrate deploy
-   npm run prisma:generate
+   psql "postgresql://aegis:aegis_dev_password@localhost:5444/aegis" -f prisma/setup.sql
+   psql "postgresql://aegis:aegis_dev_password@localhost:5444/aegis" -f prisma/seed.sql
    ```
-4. Restore latest backup (example):
+4. Restore latest backup (if restoring a prior point):
    ```bash
    docker compose exec -T db psql -U aegis -d aegis < /path/to/latest_backup.sql
+   ```
+
+**Hosted (Supabase) deployment:**
+
+1. Point `DATABASE_URL` at the Supabase pooler connection string.
+2. Bootstrap the schema (idempotent):
+   ```bash
+   psql "$DATABASE_URL" -f prisma/setup.sql
+   psql "$DATABASE_URL" -f prisma/seed.sql
+   ```
+3. To restore a logical backup, pipe the dump into the pooler as `sslmode=require`:
+   ```bash
+   psql "$DATABASE_URL" -f /path/to/latest_backup.sql
    ```
 
 ### Step 3: Restore Brain Service
@@ -86,7 +100,7 @@ This runbook explains how to restore AEGIS when the primary server fails, includ
 
 1. Configure `frontend/.env.local`:
    ```bash
-   DATABASE_URL="postgresql://aegis:aegis_dev_password@localhost:5432/aegis?schema=public"
+   DATABASE_URL="postgresql://aegis:aegis_dev_password@localhost:5444/aegis?schema=public"
    NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN="your_mapbox_public_token"
    ```
 2. Build and start:
@@ -98,13 +112,17 @@ This runbook explains how to restore AEGIS when the primary server fails, includ
    - `GET /api/sectors`
    - `GET /api/alerts/heatmap`
    - `GET /api/alerts/priority`
+   - `GET /api/clusters`
+   - `GET /api/vault/state`
+   - `POST /api/swarm/verify` (with a `clusterId` or `raw_text`)
 
 ### Step 5: Post-Recovery Verification
 
-1. Confirm ingestion pipeline can write and quarantine correctly.
-2. Confirm verified alerts appear on map and priority sidebar.
-3. Confirm sector filter behavior.
-4. Run core checks:
+1. Confirm the ingestion pipeline can write and quarantine correctly.
+2. Confirm verified alerts appear on the map and priority sidebar.
+3. Inject a test report → confirm it clusters → confirm the swarm votes → confirm a disbursement path exposes tx + audit data.
+4. Confirm vault state (reserve / daily limit / remaining) renders and updates.
+5. Run core checks:
    ```bash
    npm test
    . brain_service/.venv/bin/activate && cd brain_service && pytest -q
@@ -113,13 +131,17 @@ This runbook explains how to restore AEGIS when the primary server fails, includ
 
 ## Failover Operating Mode
 
-If LLM provider is unavailable:
+If the LLM provider is unavailable:
 
-- Brain service continues using heuristic mode (no `OPENAI_API_KEY`) to preserve triage continuity.
+- Brain service continues in deterministic heuristic mode (no `OPENAI_API_KEY`) so verification continuity is preserved.
+
+If the blockchain RPC is unavailable (production Solana mode):
+
+- The vault can still record a settlement using the deterministic mock signature; on-chain confirmation is deferred until the RPC returns.
 
 If Mapbox token is unavailable:
 
-- Command center still serves priority list and filter controls; map panel shows token-missing guidance.
+- The command center still serves the priority list and filter controls; the map panel shows token-missing guidance and degrades to List-Only mode.
 
 ## Communication Protocol During Outage
 
