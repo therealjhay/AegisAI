@@ -1,5 +1,5 @@
-import { CommandCenter } from "@/components/CommandCenter";
+import { redirect } from "next/navigation";
 
 export default function Home() {
-  return <CommandCenter />;
+  redirect("/command");
 }
