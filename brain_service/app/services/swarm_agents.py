@@ -61,9 +61,8 @@ def fact_checker(cluster: dict) -> dict:
     else:
         news_found, news_detail = False, "No corroborating news in last 3h."
         is_attack = False
-    # weather
-    is_ne = 10 < lat < 13 and 12 < lon < 14
-    weather_anomaly = is_ne or (lat>0 and lon>0)
+    # weather (location-agnostic)
+    weather_anomaly = -30 < lat < 30
     # satellite
     if "flood" in low or "water" in low:
         sat_match, sat_detail = True, f"Sentinel-2 NDWI 0.62 vs 0.21 at {lat:.2f},{lon:.2f} inundation."

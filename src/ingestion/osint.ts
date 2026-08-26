@@ -27,11 +27,9 @@ export function mockNewsSearch(query: string, location: string): string {
 }
 
 export function mockWeatherAnomaly(lat: number, lon: number): string {
-  // Maiduguri corridor (11.8,13.1) is our demo disaster zone — always anomalous
-  const isNigeriaNE = lat > 10 && lat < 13 && lon > 12 && lon < 14;
-  if (isNigeriaNE) return `Weather Station at ${lat.toFixed(2)},${lon.toFixed(2)}: Extreme rainfall, thunderstorm warning active. CHIRPS anomaly +2.3σ.`;
-  if (lat > 0 && lon > 0) return `Weather Station at ${lat.toFixed(2)},${lon.toFixed(2)}: Rainfall 12mm/6h above seasonal median — possible flood risk.`;
-  return `Weather Station at ${lat.toFixed(2)},${lon.toFixed(2)}: Normal conditions. No convective anomaly.`;
+  // Location-agnostic: heavier rain signals near the equator (wet regions) always return a plausible anomaly
+  if (lat > -30 && lat < 30) return `Weather Station at ${lat.toFixed(2)},${lon.toFixed(2)}: Extreme rainfall, thunderstorm warning active. CHIRPS anomaly +2.3σ.`;
+  return `Weather Station at ${lat.toFixed(2)},${lon.toFixed(2)}: Rainfall 12mm/6h above seasonal median — possible flood risk.`;
 }
 
 export function mockSatelliteCheck(lat: number, lon: number, disasterType: string): string {

@@ -76,10 +76,30 @@ export function MapHeatmap({ points, alerts, lowBandwidth, selectedAlertId, onSe
       const map = new mapboxgl.Map({
         container: containerRef.current!,
         style: "mapbox://styles/mapbox/dark-v11",
-        center: [13.18, 11.84],
-        zoom: 5.4,
+        center: [0, 20],
+        zoom: 1.4,
         attributionControl: true,
       });
+
+      const fitToData = () => {
+        const coords = geoJson.features.map((f) => f.geometry.coordinates as [number, number]);
+        if (coords.length === 0) return;
+        let minLng = Infinity, minLat = Infinity, maxLng = -Infinity, maxLat = -Infinity;
+        for (const [lng, lat] of coords) {
+          if (lng < minLng) minLng = lng;
+          if (lat < minLat) minLat = lat;
+          if (lng > maxLng) maxLng = lng;
+          if (lat > maxLat) maxLat = lat;
+        }
+        // Degenerate bounds (e.g. single point) expand to a viable viewport
+        if (minLng === maxLng) { minLng -= 0.5; maxLng += 0.5; }
+        if (minLat === maxLat) { minLat -= 0.5; maxLat += 0.5; }
+        const pad = Math.max((maxLng - minLng) * 0.1, (maxLat - minLat) * 0.1, 0.5);
+        map.fitBounds(
+          [[minLng - pad, minLat - pad], [maxLng + pad, maxLat + pad]],
+          { padding: 80, duration: 700, maxZoom: 10 }
+        );
+      };
 
       if (!mounted) {
         map.remove();
@@ -170,6 +190,8 @@ export function MapHeatmap({ points, alerts, lowBandwidth, selectedAlertId, onSe
             onSelectAlert(id);
           }
         });
+
+        fitToData();
       });
     })();
 
