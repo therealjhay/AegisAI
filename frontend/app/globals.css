@@ -84,6 +84,10 @@ select {
 }
 
 @media (prefers-reduced-motion: no-preference) {
+  html {
+    scroll-behavior: smooth;
+  }
+
   .tactical-pulse {
     animation: tactical-pulse 1.4s ease-in-out infinite;
     will-change: box-shadow, opacity;

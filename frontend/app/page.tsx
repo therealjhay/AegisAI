@@ -1,5 +1,13 @@
-import { redirect } from "next/navigation";
+import { SiteNav } from "@/components/home/SiteNav";
+import { Hero } from "@/components/home/Hero";
 
 export default function Home() {
-  redirect("/command");
+  return (
+    <>
+      <SiteNav />
+      <main>
+        <Hero />
+      </main>
+    </>
+  );
 }
