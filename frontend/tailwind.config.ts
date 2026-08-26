@@ -38,6 +38,31 @@ const config: Config = {
           DEFAULT: "oklch(var(--card))",
           foreground: "oklch(var(--card-foreground))",
         },
+        // Brand palette extracted from the AegisAI logo
+        navy: {
+          DEFAULT: "#0C2448",
+          deep: "#0A1B36",
+          ink: "#0C183C",
+          soft: "#3D4E6E",
+        },
+        signal: {
+          DEFAULT: "#F06820",
+          bright: "#F97A2E",
+          deep: "#D5570F",
+          wash: "#FDEADF",
+        },
+        paper: {
+          DEFAULT: "#F7F6F1",
+          raised: "#FCFBF8",
+          dim: "#EFEDE5",
+        },
+        line: {
+          DEFAULT: "#DFDCD2",
+          strong: "#C9C5B8",
+        },
+      },
+      maxWidth: {
+        shell: "72rem",
       },
     },
   },

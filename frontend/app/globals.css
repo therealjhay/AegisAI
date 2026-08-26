@@ -4,8 +4,41 @@
 @tailwind components;
 @tailwind utilities;
 
+/*
+ * AegisAI design tokens — derived from the brand logo:
+ *   Shield navy  #0C2448  (authority, structure, ink)
+ *   Signal orange #F06820 (urgency, action, CTAs — used sparingly)
+ *   Paper        #F7F6F1  (field-manual background)
+ *
+ * Two scopes:
+ *   :root           — light "operations manual" theme (marketing/homepage)
+ *   .theme-command  — dark operational theme (Command Center console)
+ */
 :root {
-  /* Soft Signal · Amber — warm · premium · minimal */
+  color-scheme: light;
+  --background: 0.966 0.006 95;
+  --foreground: 0.25 0.05 264;
+  --card: 0.985 0.004 95;
+  --card-foreground: 0.25 0.05 264;
+  --popover: 0.985 0.004 95;
+  --popover-foreground: 0.25 0.05 264;
+  --primary: 0.66 0.19 42;
+  --primary-foreground: 0.99 0.005 95;
+  --secondary: 0.93 0.008 95;
+  --secondary-foreground: 0.25 0.05 264;
+  --muted: 0.94 0.007 95;
+  --muted-foreground: 0.44 0.035 264;
+  --accent: 0.93 0.01 95;
+  --accent-foreground: 0.25 0.05 264;
+  --destructive: 0.55 0.21 25;
+  --destructive-foreground: 0.98 0 0;
+  --border: 0.89 0.009 95;
+  --input: 0.94 0.007 95;
+  --ring: 0.66 0.19 42;
+  --radius: 0.25rem;
+}
+
+.theme-command {
   color-scheme: dark;
   --background: 0.12 0.012 75;
   --foreground: 0.97 0.01 75;
@@ -13,7 +46,7 @@
   --card-foreground: 0.97 0.01 75;
   --popover: 0.19 0.015 75;
   --popover-foreground: 0.97 0.01 75;
-  --primary: 0.70 0.12 35;
+  --primary: 0.66 0.19 42;
   --primary-foreground: 0.10 0 0;
   --secondary: 0.21 0.02 75;
   --secondary-foreground: 0.97 0.01 75;
@@ -25,31 +58,7 @@
   --destructive-foreground: 0.98 0 0;
   --border: 0.25 0.02 75;
   --input: 0.17 0.015 75;
-  --ring: 0.70 0.12 35;
-  --radius: 0.5rem;
-}
-
-.light {
-  color-scheme: light;
-  --background: 0.99 0.01 75;
-  --foreground: 0.16 0.02 50;
-  --card: 1 0 0;
-  --card-foreground: 0.16 0.02 50;
-  --popover: 1 0 0;
-  --popover-foreground: 0.16 0.02 50;
-  --primary: 0.48 0.12 35;
-  --primary-foreground: 0.99 0 0;
-  --secondary: 0.95 0.01 75;
-  --secondary-foreground: 0.16 0.02 50;
-  --muted: 0.96 0.01 75;
-  --muted-foreground: 0.45 0.02 50;
-  --accent: 0.94 0.018 72;
-  --accent-foreground: 0.16 0.02 50;
-  --destructive: 0.55 0.22 25;
-  --destructive-foreground: 0.98 0 0;
-  --border: 0.91 0.01 75;
-  --input: 0.97 0.01 75;
-  --ring: 0.48 0.12 35;
+  --ring: 0.66 0.19 42;
   --radius: 0.5rem;
 }
 
@@ -365,5 +374,10 @@ select {
   }
   .font-heading {
     font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
+  }
+  .mono-label {
+    font-family: var(--font-mono), ui-monospace, monospace;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
   }
 }
