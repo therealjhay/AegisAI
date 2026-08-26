@@ -140,13 +140,17 @@ export function AuditView({ clusterId, onClose }: Props) {
           <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Agent Votes (Cryptographic Signatures)</h4>
           {audit.votes.map((v) => {
             const agent = AGENT_LABELS[v.agentType] || { label: v.agentType, icon: "🤖" };
-            const voteColor = v.vote === "yes" ? "text-green-400" : v.vote === "no" ? "text-red-400" : "text-amber-400";
+            const voteStyles = v.vote === "yes"
+              ? "text-green-400 bg-green-500/10"
+              : v.vote === "no"
+              ? "text-red-400 bg-red-500/10"
+              : "text-signal-bright bg-signal-bright/10";
             return (
               <div key={`${v.agentType}-${v.createdAt}`} className="rounded-lg border border-border bg-card/50 p-3">
                 <div className="flex items-center gap-2 mb-2">
                   <span className="text-lg">{agent.icon}</span>
                   <span className="font-medium">{agent.label}</span>
-                  <span className={`ml-auto px-2 py-0.5 rounded text-[10px] font-semibold ${voteColor} bg-${v.vote === "yes" ? "green" : v.vote === "no" ? "red" : "amber"}-500/10`}>
+                  <span className={`ml-auto px-2 py-0.5 rounded text-[10px] font-semibold ${voteStyles}`}>
                     {v.vote.toUpperCase()}
                   </span>
                 </div>
@@ -177,7 +181,7 @@ export function AuditView({ clusterId, onClose }: Props) {
                   <a href={d.explorerUrl || "#"} target="_blank" rel="noopener noreferrer" className="text-[10px] text-primary hover:underline">Explorer →</a>
                 </div>
                 <div className="grid grid-cols-2 gap-1 text-xs">
-                  <div><span className="text-muted-foreground">Amount:</span> <span className="ml-1 font-mono tabular-nums text-amber-300">${d.amountUSD.toLocaleString()}</span></div>
+                  <div><span className="text-muted-foreground">Amount:</span> <span className="ml-1 font-mono tabular-nums text-signal-bright">${d.amountUSD.toLocaleString()}</span></div>
                   <div><span className="text-muted-foreground">Tier:</span> <span className="ml-1 font-mono">{d.tier ?? "—"}</span></div>
                   <div className="col-span-2"><span className="text-muted-foreground">Recipient:</span> <span className="ml-1 font-mono text-[10px] break-all">{d.recipientWallet}</span></div>
                   <div className="col-span-2"><span className="text-muted-foreground">Org:</span> <span className="ml-1">{d.recipientOrg ?? "—"}</span></div>

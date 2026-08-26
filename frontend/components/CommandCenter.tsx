@@ -448,7 +448,7 @@ export function CommandCenter() {
               type="button"
               onClick={() => setLowBandwidth((v) => !v)}
               className={`h-8 rounded-md border px-2.5 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-background ${
-                lowBandwidth ? "border-amber-400 bg-amber-400/20 text-amber-300" : "border-border bg-card text-muted-foreground hover:text-foreground"
+                lowBandwidth ? "border-signal-bright/50 bg-signal-bright/15 text-signal-bright" : "border-border bg-card text-muted-foreground hover:text-foreground"
               }`}
             >
               {lowBandwidth ? "BW: Off" : "BW: On"}
@@ -516,7 +516,7 @@ export function CommandCenter() {
                 <span aria-hidden="true" className="h-3 w-px bg-border" />
                 <span className="tabular-nums font-semibold text-red-300">{criticalCount} <span className="font-normal text-red-200/70">critical</span></span>
                 <span aria-hidden="true" className="h-3 w-px bg-border" />
-                <span className="tabular-nums font-semibold text-amber-300">${Math.round(totalDeficit / 1000)}k <span className="font-normal text-amber-200/70">deficit</span></span>
+                <span className="tabular-nums font-semibold text-signal-bright">${Math.round(totalDeficit / 1000)}k <span className="font-normal text-signal-bright/70">deficit</span></span>
               </div>
 
               {/* Quick Inject */}
@@ -635,7 +635,7 @@ export function CommandCenter() {
                 <p className="text-xs font-semibold text-foreground">Funding</p>
                 <div className="mt-2 h-2 overflow-hidden rounded-full bg-muted">
                   <motion.div
-                    className="h-full rounded-full bg-amber-500"
+                    className="h-full rounded-full bg-signal-bright"
                     initial={{ scaleX: 0 }}
                     animate={{ scaleX: fundingRaised(selectedAlert) / fundingTarget(selectedAlert) }}
                     transition={{ type: "spring", damping: 20, stiffness: 120 }}
@@ -729,7 +729,7 @@ export function CommandCenter() {
             animate={{ y: 0 }}
             exit={{ y: "100%" }}
             transition={{ type: "spring", damping: 24, stiffness: 260 }}
-            className="fixed bottom-0 left-0 right-0 z-50 border-t border-amber-400/50 bg-amber-500 px-4 py-2.5 text-center text-xs font-semibold text-black"
+            className="fixed bottom-0 left-0 right-0 z-50 border-t border-signal-deep bg-signal-bright px-4 py-2.5 text-center text-xs font-semibold text-navy-deep"
           >
             Offline mode — cached tiles and queued actions
           </motion.div>

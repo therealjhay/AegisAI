@@ -59,7 +59,7 @@ export function VaultStateDisplay() {
         </div>
         <div>
           <span className="text-muted-foreground">Daily Limit:</span>
-          <span className="ml-1 font-mono tabular-nums text-amber-300">${vault.dailyLimitUSD.toLocaleString()}</span>
+          <span className="ml-1 font-mono tabular-nums text-signal-bright">${vault.dailyLimitUSD.toLocaleString()}</span>
         </div>
         <div>
           <span className="text-muted-foreground">Used Today:</span>
@@ -72,7 +72,7 @@ export function VaultStateDisplay() {
       </div>
       <div className="h-2 bg-muted rounded-full overflow-hidden">
         <motion.div
-          className="h-full bg-amber-500 rounded-full"
+          className="h-full bg-signal-bright rounded-full"
           initial={{ scaleX: 0 }}
           animate={{ scaleX: Math.min(vault.pctUsed / 100, 1) }}
           transition={{ type: "spring", damping: 20, stiffness: 120 }}

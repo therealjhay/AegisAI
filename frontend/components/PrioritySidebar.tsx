@@ -24,7 +24,7 @@ function incidentLabel(alert: PriorityAlert): string {
 function badgeColor(alert: PriorityAlert): string {
   const label = incidentLabel(alert);
   if (alert.urgencyScore >= 5 || label === "Terrorism") return "bg-red-500/10 text-red-400 border-red-500/30";
-  if (label === "Flood") return "bg-amber-500/10 text-amber-400 border-amber-500/30";
+  if (label === "Flood") return "bg-sky-500/10 text-sky-400 border-sky-500/30";
   return "bg-primary/10 text-primary border-primary/30";
 }
 
@@ -111,16 +111,16 @@ export function PrioritySidebar({ alerts, loading, error, selectedAlertId, onRet
               initial={{ opacity: 0, y: -8 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0 }}
-              className="m-3 rounded-lg border border-amber-500/30 bg-amber-500/5 p-3"
+              className="m-3 rounded-lg border border-signal-bright/30 bg-signal-bright/5 p-3"
             >
-              <p className="text-sm font-medium text-amber-300">Live stream degraded.</p>
-              <p className="mt-1 text-xs text-amber-300/70">{error}</p>
+              <p className="text-sm font-medium text-signal-bright">Live stream degraded.</p>
+              <p className="mt-1 text-xs text-signal-bright/70">{error}</p>
               {alerts.length === 0 && (
                 <motion.button
                   type="button"
                   onClick={onRetry}
                   whileTap={{ scale: 0.96 }}
-                  className="mt-3 rounded-md border border-amber-500/40 px-3 py-2 text-xs font-medium text-amber-300 transition-colors hover:bg-amber-500/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  className="mt-3 rounded-md border border-signal-bright/40 px-3 py-2 text-xs font-medium text-signal-bright transition-colors hover:bg-signal-bright/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 >
                   Retry
                 </motion.button>

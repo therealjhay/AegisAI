@@ -26,14 +26,14 @@ export type QuorumResult = {
 const AGENT_LABELS: Record<string, { label: string; icon: string; color: string }> = {
   triangulator: { label: "Triangulator", icon: "📍", color: "text-blue-400" },
   fact_checker: { label: "Fact-Checker", icon: "🔍", color: "text-green-400" },
-  triage_evaluator: { label: "Triage Evaluator", icon: "📊", color: "text-amber-400" },
+  triage_evaluator: { label: "Triage Evaluator", icon: "📊", color: "text-signal-bright" },
   risk_governor: { label: "Risk Governor", icon: "🛡️", color: "text-purple-400" },
 };
 
 const VOTE_COLOR: Record<string, string> = {
   yes: "text-green-400 bg-green-500/10 border-green-500/20",
   no: "text-red-400 bg-red-500/10 border-red-500/20",
-  abstain: "text-amber-400 bg-amber-500/10 border-amber-500/20",
+  abstain: "text-signal-bright bg-signal-bright/10 border-signal-bright/20",
 };
 
 const VOTE_LABEL: Record<string, string> = { yes: "APPROVE", no: "REJECT", abstain: "ABSTAIN" };
@@ -145,7 +145,7 @@ export function SwarmPanel({ clusterId, onDisburse, onClose }: Props) {
       )}
 
       {loading && quorum && (
-        <motion.div className="mx-4 mt-3 p-3 rounded-md bg-amber-500/10 border border-amber-500/20 text-amber-300 text-xs" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+        <motion.div className="mx-4 mt-3 p-3 rounded-md bg-signal-bright/10 border border-signal-bright/20 text-signal-bright text-xs" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
           Refreshing quorum...
         </motion.div>
       )}
@@ -160,7 +160,7 @@ export function SwarmPanel({ clusterId, onDisburse, onClose }: Props) {
               quorum.status === "verified"
                 ? "border-green-500/30 bg-green-500/5"
                 : quorum.status === "audit_required"
-                ? "border-amber-500/30 bg-amber-500/5"
+                ? "border-signal-bright/30 bg-signal-bright/5"
                 : "border-red-500/30 bg-red-500/5"
             }`}
           >
@@ -169,7 +169,7 @@ export function SwarmPanel({ clusterId, onDisburse, onClose }: Props) {
                 quorum.status === "verified"
                   ? "bg-green-500/20 text-green-400"
                   : quorum.status === "audit_required"
-                  ? "bg-amber-500/20 text-amber-400"
+                  ? "bg-signal-bright/20 text-signal-bright"
                   : "bg-red-500/20 text-red-400"
               }`}>
                 {quorum.status.toUpperCase()}
@@ -178,7 +178,7 @@ export function SwarmPanel({ clusterId, onDisburse, onClose }: Props) {
             </div>
             <div className="flex items-center gap-4 text-xs text-muted-foreground">
               <span>Tier: <span className="font-mono tabular-nums text-foreground">{quorum.tier}</span></span>
-              <span>Capped: <span className="font-mono tabular-nums text-amber-300">${quorum.cappedAmountUSD.toLocaleString()}</span></span>
+              <span>Capped: <span className="font-mono tabular-nums text-signal-bright">${quorum.cappedAmountUSD.toLocaleString()}</span></span>
               <span>Hash: <span className="font-mono text-[10px]">{quorum.quorumHash?.slice(0, 16)}…</span></span>
             </div>
           </motion.div>
@@ -222,17 +222,17 @@ export function SwarmPanel({ clusterId, onDisburse, onClose }: Props) {
               animate={{ opacity: 1, y: 0 }}
               className="border-t border-border pt-3 space-y-3"
             >
-              <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-3">
+              <div className="rounded-lg border border-signal-bright/30 bg-signal-bright/5 p-3">
                 <div className="flex items-center justify-between text-xs">
-                  <span className="text-amber-300 font-medium">READY FOR DISBURSEMENT</span>
-                  <span className="font-mono tabular-nums text-amber-400">${quorum.cappedAmountUSD.toLocaleString()} USDC</span>
+                  <span className="text-signal-bright font-medium">READY FOR DISBURSEMENT</span>
+                  <span className="font-mono tabular-nums text-signal-bright">${quorum.cappedAmountUSD.toLocaleString()} USDC</span>
                 </div>
                 <p className="mt-1 text-[11px] text-muted-foreground">3-of-4 signatures verified. Parametric cap applied by Risk Governor. Click to execute on-chain transfer.</p>
               </div>
               <button
                 onClick={handleDisburse}
                 disabled={disbursing}
-                className="w-full h-10 rounded-md bg-amber-500 px-4 text-xs font-bold text-black transition-colors hover:bg-amber-400 disabled:opacity-50 flex items-center justify-center gap-2"
+                className="w-full h-10 rounded-md bg-signal-bright px-4 text-xs font-bold text-navy-deep transition-colors hover:bg-signal disabled:opacity-50 flex items-center justify-center gap-2"
               >
                 {disbursing ? "⏳ Executing…" : "⚡ Execute Disbursement"}
               </button>

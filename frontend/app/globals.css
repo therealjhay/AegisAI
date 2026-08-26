@@ -40,24 +40,24 @@
 
 .theme-command {
   color-scheme: dark;
-  --background: 0.12 0.012 75;
-  --foreground: 0.97 0.01 75;
-  --card: 0.17 0.015 75;
-  --card-foreground: 0.97 0.01 75;
-  --popover: 0.19 0.015 75;
-  --popover-foreground: 0.97 0.01 75;
+  --background: 0.185 0.045 264;
+  --foreground: 0.95 0.012 260;
+  --card: 0.225 0.05 264;
+  --card-foreground: 0.95 0.012 260;
+  --popover: 0.245 0.05 264;
+  --popover-foreground: 0.95 0.012 260;
   --primary: 0.66 0.19 42;
-  --primary-foreground: 0.10 0 0;
-  --secondary: 0.21 0.02 75;
-  --secondary-foreground: 0.97 0.01 75;
-  --muted: 0.19 0.015 75;
-  --muted-foreground: 0.67 0.01 75;
-  --accent: 0.23 0.025 71;
-  --accent-foreground: 0.97 0.01 75;
+  --primary-foreground: 0.13 0.03 264;
+  --secondary: 0.27 0.05 264;
+  --secondary-foreground: 0.95 0.012 260;
+  --muted: 0.235 0.045 264;
+  --muted-foreground: 0.72 0.025 260;
+  --accent: 0.28 0.05 264;
+  --accent-foreground: 0.95 0.012 260;
   --destructive: 0.65 0.22 25;
   --destructive-foreground: 0.98 0 0;
-  --border: 0.25 0.02 75;
-  --input: 0.17 0.015 75;
+  --border: 0.33 0.045 264;
+  --input: 0.225 0.05 264;
   --ring: 0.66 0.19 42;
   --radius: 0.5rem;
 }
@@ -96,11 +96,11 @@ select {
 
 @keyframes tactical-pulse {
   0%, 100% {
-    box-shadow: 0 0 0 0 rgb(224 146 88 / 0.55);
+    box-shadow: 0 0 0 0 rgb(249 122 46 / 0.55);
     opacity: 1;
   }
   70% {
-    box-shadow: 0 0 0 8px rgb(224 146 88 / 0);
+    box-shadow: 0 0 0 8px rgb(249 122 46 / 0);
     opacity: 0.72;
   }
 }
@@ -123,7 +123,7 @@ select {
   inset: 0;
   pointer-events: none;
   z-index: 60;
-  background: linear-gradient(90deg, transparent, rgb(224 146 88 / 0.12), transparent);
+  background: linear-gradient(90deg, transparent, rgb(249 122 46 / 0.12), transparent);
   transform: translateX(-110%);
   animation: boot-scan 760ms var(--ease-out-expo) 120ms both;
 }
@@ -337,8 +337,8 @@ select {
 }
 
 @keyframes response-ready {
-  0%, 100% { box-shadow: 0 0 0 0 rgb(224 146 88 / 0.34); }
-  60% { box-shadow: 0 0 0 8px rgb(224 146 88 / 0); }
+  0%, 100% { box-shadow: 0 0 0 0 rgb(249 122 46 / 0.34); }
+  60% { box-shadow: 0 0 0 8px rgb(249 122 46 / 0); }
 }
 
 @keyframes fade-in {
