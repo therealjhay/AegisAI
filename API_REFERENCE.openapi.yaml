@@ -1,19 +1,28 @@
 openapi: 3.0.3
 info:
   title: AEGIS API Technical Reference
-  version: 1.0.0
+  version: 2.0.0
   description: >
-    Unified API reference for AEGIS Brain Service (FastAPI) and Command Center data APIs (Next.js route handlers).
+    Unified API reference for the AEGIS decentralized autonomous disaster response &
+    parametric micro-grants dispatcher. Covers the Brain Service (FastAPI) supervisor
+    endpoints and the Command Center data APIs (Next.js route handlers).
+
+    Live deployment: https://aegiswarm.vercel.app/
 servers:
+  - url: https://aegiswarm.vercel.app
+    description: Command Center (production)
   - url: http://localhost:8001
     description: Brain Service (FastAPI)
   - url: http://localhost:3000
-    description: Command Center (Next.js)
+    description: Command Center (local)
 tags:
   - name: Brain
+    description: FastAPI supervisor service (triage + quorum)
   - name: Command Center
+    description: Next.js route handlers for the operator surface
 
 paths:
+  # ───────────────────────── Brain Service ──────────────────────────
   /health:
     get:
       tags: [Brain]
@@ -27,9 +36,7 @@ paths:
               schema:
                 type: object
                 properties:
-                  status:
-                    type: string
-                    example: ok
+                  status: { type: string, example: ok }
                 required: [status]
 
   /triage:
@@ -41,8 +48,7 @@ paths:
         required: true
         content:
           application/json:
-            schema:
-              $ref: "#/components/schemas/TriageRequest"
+            schema: { $ref: "#/components/schemas/TriageRequest" }
             examples:
               flood_case:
                 value:
@@ -52,10 +58,340 @@ paths:
           description: Structured triage result
           content:
             application/json:
-              schema:
-                $ref: "#/components/schemas/TriageResponse"
+              schema: { $ref: "#/components/schemas/TriageResponse" }
         "422":
           description: Validation error
+
+  /swarm/verify:
+    post:
+      tags: [Brain]
+      summary: Run the 3-of-4 agent quorum on a cluster (deterministic)
+      operationId: swarmVerify
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/SwarmVerifyRequest" }
+      responses:
+        "200":
+          description: Quorum result with per-agent votes
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/QuorumResult" }
+        "400":
+          description: Invalid input
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
+
+  /swarm/quorum:
+    get:
+      tags: [Brain]
+      summary: Fetch stored votes + quorum for a cluster
+      operationId: swarmQuorum
+      parameters:
+        - in: query
+          name: clusterId
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: Stored votes + cluster quorum state
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  cluster: { type: object }
+                  votes: { type: array }
+        "404":
+          description: Cluster not found
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
+
+  # ─────────────────────── Command Center: Pillar 1 ──────────────────────
+  /api/ingest:
+    post:
+      tags: [Command Center]
+      summary: Ingest a raw report -> validate -> cluster (1km/1h) -> save alert
+      operationId: ingestAlert
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/IngestRequest" }
+            examples:
+              flood:
+                value:
+                  raw_text: "Flood waters rising, families trapped near river market"
+                  source: "social_media"
+                  coordinates: { lat: 6.52, lon: 3.38 }
+                  urgency_score: 5
+                  incident_type: "Natural_Disaster"
+      responses:
+        "200":
+          description: Decision = saved or quarantined
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/IngestResponse" }
+        "400":
+          description: Missing required fields
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
+    get:
+      tags: [Command Center]
+      summary: Ingest endpoint usage hint
+      operationId: ingestHint
+      responses:
+        "200":
+          description: Usage hint
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok: { type: boolean }
+                  message: { type: string }
+
+  /api/clusters:
+    get:
+      tags: [Command Center]
+      summary: List incident clusters (pillar 1 output, pillar 2/3 targets)
+      operationId: listClusters
+      parameters:
+        - in: query
+          name: status
+          required: false
+          schema: { type: string }
+          description: Filter by status (pending, verified, disbursed, audit_required, quarantined)
+        - in: query
+          name: limit
+          required: false
+          schema: { type: integer, default: 50, maximum: 200 }
+        - in: query
+          name: offset
+          required: false
+          schema: { type: integer, default: 0 }
+      responses:
+        "200":
+          description: Cluster list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  clusters:
+                    type: array
+                    items: { $ref: "#/components/schemas/Cluster" }
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
+
+  # ─────────────────────── Command Center: Pillar 2 ──────────────────────
+  /api/swarm/verify:
+    post:
+      tags: [Command Center]
+      summary: Run the agent quorum on a cluster (or ad-hoc raw_text for demo inject)
+      operationId: verifySwarm
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                clusterId: { type: string }
+                raw_text: { type: string }
+                lat: { type: number }
+                lon: { type: number }
+              description: Provide clusterId, OR raw_text to create a synthetic cluster
+      responses:
+        "200":
+          description: Quorum verdict + persisted votes
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/QuorumResult" }
+        "400":
+          description: Invalid request
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
+        "404":
+          description: Cluster not found
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
+    get:
+      tags: [Command Center]
+      summary: Fetch stored votes + quorum for a cluster
+      operationId: getSwarmQuorum
+      parameters:
+        - in: query
+          name: clusterId
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: Stored votes + cluster state
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  cluster: { type: object }
+                  votes: { type: array }
+        "404":
+          description: Cluster not found
+
+  # ─────────────────────── Command Center: Pillar 3 ──────────────────────
+  /api/vault/state:
+    get:
+      tags: [Command Center]
+      summary: Get vault state (reserve, daily limit, remaining today)
+      operationId: getVaultState
+      responses:
+        "200":
+          description: Vault state
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  vault:
+                    $ref: "#/components/schemas/VaultState"
+        "500":
+          description: Server error
+    post:
+      tags: [Command Center]
+      summary: Admin deposit into the vault (demo)
+      operationId: depositToVault
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                amount: { type: number, minimum: 1 }
+              required: [amount]
+      responses:
+        "200":
+          description: Deposit confirmed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok: { type: boolean, example: true }
+                  deposited: { type: number }
+        "400":
+          description: Invalid amount
+
+  /api/vault/disburse:
+    post:
+      tags: [Command Center]
+      summary: Verify quorum signatures -> apply caps -> disburse grant
+      operationId: disburseGrant
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                clusterId: { type: string }
+                recipientWallet: { type: string }
+              required: [clusterId]
+      responses:
+        "200":
+          description: Disbursement confirmed
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/DisbursementResult" }
+        "400":
+          description: Quorum/caps/signature failure
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
+        "404":
+          description: Cluster not found
+        "409":
+          description: Cluster already disbursed
+    get:
+      tags: [Command Center]
+      summary: Get disbursement history (optionally per cluster)
+      operationId: listDisbursements
+      parameters:
+        - in: query
+          name: clusterId
+          required: false
+          schema: { type: string }
+      responses:
+        "200":
+          description: Disbursement list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  disbursements:
+                    type: array
+                    items: { $ref: "#/components/schemas/DisbursementResult" }
+
+  # ─────────────────────── Command Center: Pillar 4 + feed ──────────────
+  /api/audit/{clusterId}:
+    get:
+      tags: [Command Center]
+      summary: Full audit trail for a cluster (alerts, votes, disbursements)
+      operationId: getAudit
+      parameters:
+        - in: path
+          name: clusterId
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: Complete audit trail
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AuditResponse" }
+        "404":
+          description: Cluster not found
+
+  /api/disbursements:
+    get:
+      tags: [Command Center]
+      summary: Disbursement history
+      operationId: getDisbursementHistory
+      parameters:
+        - in: query
+          name: clusterId
+          required: false
+          schema: { type: string }
+      responses:
+        "200":
+          description: Disbursements with cluster coords/region
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  disbursements:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        amount_usd: { type: number }
+                        recipient_org: { type: string, nullable: true }
+                        tx_signature: { type: string }
+                        explorer_url: { type: string, nullable: true }
+                        lat: { type: number }
+                        lon: { type: number }
+                        region: { type: string, nullable: true }
 
   /api/alerts/heatmap:
     get:
@@ -66,9 +402,7 @@ paths:
         - in: query
           name: sector
           required: false
-          schema:
-            type: string
-          description: Optional sector filter (for example Medical, Shelter, Logistics)
+          schema: { type: string }
       responses:
         "200":
           description: Heatmap-ready points
@@ -77,33 +411,27 @@ paths:
               schema:
                 type: object
                 properties:
-                  generatedAt:
-                    type: string
-                    format: date-time
+                  generatedAt: { type: string, format: date-time }
                   points:
                     type: array
-                    items:
-                      $ref: "#/components/schemas/HeatmapPoint"
+                    items: { $ref: "#/components/schemas/HeatmapPoint" }
                 required: [generatedAt, points]
         "500":
           description: Unable to load heatmap alerts
           content:
             application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
 
   /api/alerts/priority:
     get:
       tags: [Command Center]
-      summary: Get top 5 most urgent verified alerts
+      summary: Get top urgent verified alerts
       operationId: getPriorityAlerts
       parameters:
         - in: query
           name: sector
           required: false
-          schema:
-            type: string
-          description: Optional sector filter (for example Medical, Shelter, Logistics)
+          schema: { type: string }
       responses:
         "200":
           description: Priority alert list
@@ -112,20 +440,16 @@ paths:
               schema:
                 type: object
                 properties:
-                  generatedAt:
-                    type: string
-                    format: date-time
+                  generatedAt: { type: string, format: date-time }
                   alerts:
                     type: array
-                    items:
-                      $ref: "#/components/schemas/PriorityAlert"
+                    items: { $ref: "#/components/schemas/PriorityAlert" }
                 required: [generatedAt, alerts]
         "500":
           description: Unable to load priority alerts
           content:
             application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
 
   /api/sectors:
     get:
@@ -142,88 +466,179 @@ paths:
                 properties:
                   sectors:
                     type: array
-                    items:
-                      type: string
+                    items: { type: string }
                 required: [sectors]
         "500":
           description: Unable to load sectors
           content:
             application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
 
 components:
   schemas:
     TriageRequest:
       type: object
       properties:
-        raw_text:
-          type: string
-          minLength: 1
+        raw_text: { type: string, minLength: 1 }
       required: [raw_text]
     TriageResponse:
       type: object
       properties:
-        disaster_type:
-          type: string
-          example: Flood
-        urgency_score:
-          type: integer
-          minimum: 1
-          maximum: 5
-          example: 5
+        disaster_type: { type: string, example: Flood }
+        urgency_score: { type: integer, minimum: 1, maximum: 5, example: 5 }
         location_mentions:
           type: array
-          items:
-            type: string
+          items: { type: string }
           example: ["Old Bridge", "Mercy Hospital"]
-        classification_source:
-          type: string
-          example: llm
+        classification_source: { type: string, example: llm }
       required: [disaster_type, urgency_score, location_mentions, classification_source]
+
+    SwarmVerifyRequest:
+      type: object
+      properties:
+        clusterId: { type: string }
+        raw_text: { type: string }
+        lat: { type: number }
+        lon: { type: number }
+
+    IngestRequest:
+      type: object
+      properties:
+        raw_text: { type: string }
+        source: { type: string }
+        coordinates:
+          type: object
+          properties:
+            lat: { type: number }
+            lon: { type: number }
+        urgency_score: { type: integer, minimum: 1, maximum: 5 }
+        financial_target_usd: { type: number, default: 0 }
+        incident_type: { type: string, example: Natural_Disaster }
+      required: [raw_text, source, coordinates, urgency_score]
+    IngestResponse:
+      type: object
+      oneOf:
+        - properties:
+            decision: { type: string, example: saved }
+            clusterId: { type: string }
+            alertId: { type: string }
+            isNewCluster: { type: boolean }
+            credibility: { type: number }
+        - properties:
+            decision: { type: string, example: quarantined }
+            reason: { type: string, example: low_source_credibility }
+            credibility: { type: number }
+
+    Cluster:
+      type: object
+      properties:
+        id: { type: string }
+        lat: { type: number }
+        lon: { type: number }
+        radiusM: { type: number }
+        reportCount: { type: integer }
+        sources: { type: object }
+        status: { type: string }
+        tier: { type: integer, nullable: true }
+        totalFinancialTarget: { type: number }
+        quorumHash: { type: string, nullable: true }
+        region: { type: string, nullable: true }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+
+    QuorumResult:
+      type: object
+      properties:
+        clusterId: { type: string }
+        votes:
+          type: array
+          items: { $ref: "#/components/schemas/AgentVote" }
+        yesCount: { type: integer, example: 3 }
+        quorumReached: { type: boolean, example: true }
+        status: { type: string, example: verified, enum: [verified, audit_required, quarantined] }
+        tier: { type: integer, nullable: true }
+        cappedAmountUSD: { type: number, nullable: true }
+        quorumHash: { type: string, nullable: true }
+      required: [clusterId, votes, yesCount, quorumReached, status]
+
+    AgentVote:
+      type: object
+      properties:
+        agentType: { type: string, enum: [triangulator, fact_checker, triage_evaluator, risk_governor] }
+        vote: { type: string, enum: [yes, no, abstain] }
+        score: { type: number, format: float, example: 0.84 }
+        reasoning: { type: string }
+        signature: { type: string }
+        toolProofs: { type: object }
+
+    VaultState:
+      type: object
+      properties:
+        reserve_usd: { type: number, example: 1000000 }
+        daily_limit_usd: { type: number, example: 100000 }
+        disbursed_today_usd: { type: number, example: 0 }
+        last_reset_at: { type: string, format: date-time }
+
+    DisbursementResult:
+      type: object
+      properties:
+        disbursementId: { type: string }
+        clusterId: { type: string }
+        amountUSD: { type: number }
+        txSignature: { type: string }
+        explorerUrl: { type: string }
+        quorumHash: { type: string }
+        recipientWallet: { type: string }
+        recipientOrg: { type: string, nullable: true }
+        status: { type: string, example: confirmed }
+      required: [disbursementId, clusterId, amountUSD, txSignature, quorumHash, recipientWallet, status]
+
+    AuditResponse:
+      type: object
+      properties:
+        cluster: { $ref: "#/components/schemas/Cluster" }
+        votes:
+          type: array
+          items: { $ref: "#/components/schemas/AgentVote" }
+        quorum:
+          type: object
+          properties:
+            yesCount: { type: integer }
+            quorumReached: { type: boolean }
+            quorumHash: { type: string, nullable: true }
+            status: { type: string }
+        disbursements:
+          type: array
+          items: { $ref: "#/components/schemas/DisbursementResult" }
+        alerts:
+          type: array
+          items: { type: object }
+        generatedAt: { type: string, format: date-time }
+
     HeatmapPoint:
       type: object
       properties:
-        id:
-          type: string
-        lat:
-          type: number
-          format: double
-        lon:
-          type: number
-          format: double
-        urgencyScore:
-          type: integer
-          minimum: 1
-          maximum: 5
-        sector:
-          type: string
-        timestamp:
-          type: string
-          format: date-time
+        id: { type: string }
+        lat: { type: number, format: double }
+        lon: { type: number, format: double }
+        urgencyScore: { type: integer, minimum: 1, maximum: 5 }
+        sector: { type: string }
+        timestamp: { type: string, format: date-time }
       required: [id, lat, lon, urgencyScore, sector, timestamp]
+
     PriorityAlert:
       type: object
       properties:
-        id:
-          type: string
-        rawText:
-          type: string
-        source:
-          type: string
-        urgencyScore:
-          type: integer
-          minimum: 1
-          maximum: 5
-        sector:
-          type: string
-        timestamp:
-          type: string
-          format: date-time
+        id: { type: string }
+        rawText: { type: string }
+        source: { type: string }
+        urgencyScore: { type: integer, minimum: 1, maximum: 5 }
+        sector: { type: string }
+        timestamp: { type: string, format: date-time }
       required: [id, rawText, source, urgencyScore, sector, timestamp]
+
     ErrorResponse:
       type: object
       properties:
-        error:
-          type: string
+        error: { type: string }
       required: [error]
