@@ -1,5 +1,6 @@
 import { SiteNav } from "@/components/home/SiteNav";
 import { Hero } from "@/components/home/Hero";
+import { SwarmSection } from "@/components/home/SwarmSection";
 import { PillarPipeline } from "@/components/home/PillarPipeline";
 import { ConsoleSection } from "@/components/home/ConsoleSection";
 import { TrustSection } from "@/components/home/TrustSection";
@@ -12,6 +13,7 @@ export default function Home() {
       <SiteNav />
       <main>
         <Hero />
+        <SwarmSection />
         <PillarPipeline />
         <ConsoleSection />
         <TrustSection />

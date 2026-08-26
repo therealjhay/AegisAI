@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 
 const navLinks = [
+  { href: "/#swarm", label: "The Swarm" },
   { href: "/#pipeline", label: "How it works" },
   { href: "/#console", label: "Console" },
   { href: "/#trust", label: "Trust model" },
