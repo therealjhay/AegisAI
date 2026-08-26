@@ -4,6 +4,7 @@ import { PillarPipeline } from "@/components/home/PillarPipeline";
 import { ConsoleSection } from "@/components/home/ConsoleSection";
 import { TrustSection } from "@/components/home/TrustSection";
 import { CtaBand } from "@/components/home/CtaBand";
+import { SiteFooter } from "@/components/home/SiteFooter";
 
 export default function Home() {
   return (
@@ -16,6 +17,7 @@ export default function Home() {
         <TrustSection />
         <CtaBand />
       </main>
+      <SiteFooter />
     </>
   );
 }

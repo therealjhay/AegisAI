@@ -12,7 +12,7 @@ export function CtaBand() {
               alt=""
               width={72}
               height={72}
-              className="hidden h-18 w-18 shrink-0 sm:block"
+              className="hidden h-20 w-20 shrink-0 sm:block"
             />
             <div>
               <h2 className="max-w-[24ch] text-balance text-3xl font-bold leading-tight tracking-tight sm:text-4xl">
